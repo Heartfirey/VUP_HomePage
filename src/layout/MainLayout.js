@@ -63,7 +63,7 @@ export default function MainLayout({ props, children }) {
             <SplashCursor />
             <div className="relative md:absolute top-0 md:left-1/3 w-full h-full z-9"><Lanyard /></div>
             <ClickSpark sparkColor='#FF80AB' sparkSize={20} sparkRadius={25} sparkCount={8} duration={600}>
-                <div style={{ backgroundImage: `url(${sakuraBGPNG})`, backgroundPosition: 'center', position: 'fixed', top: 0, left: 0, zIndex: -1, objectFit: 'cover', width: '100vw', height: '100vh' }}></div>
+                <div style={{ backgroundImage: `url(${sakuraBGPNG})`, backgroundRepeat: 'no-repeat', backgroundPosition: 'center', backgroundSize: 'cover', position: 'fixed', top: 0, left: 0, zIndex: -1, objectFit: 'cover', width: '100vw', height: '100vh' }}></div>
                 <NavBar />
                 <Container disableGutters className="min-h-screen mx-auto overflow-y-auto w-full mt-16 pt-8 p-4 sm:px-4 md:px-6 space-y-4">
                     <div id="back-to-top-anchor" />
