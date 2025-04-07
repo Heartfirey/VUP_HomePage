@@ -92,12 +92,11 @@ export default function SearchCard() {
 
     const handleSuperSongClick = () => {
         if (isSuperSong) {
-            console.log('请求另一个API');
             dispatch(setPersistentSearch({ mode: 'songType', keyword: '' }));
             dispatch(resetSongs());
             dispatch(fetchSongsByKeyValue({ key: 'songType', value: '', pageNum: 1, pageSize: 10 }));
+            setLocalQuery("");
         } else {
-            console.log('请求现有API');
             dispatch(setPersistentSearch({ mode: 'isSuper', keyword: 1 }));
             dispatch(resetSongs());
             dispatch(fetchSongsByKeyValue({ key: 'isSuper', value: 1, pageNum: 1, pageSize: 10 }));
