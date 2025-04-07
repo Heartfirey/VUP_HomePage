@@ -10,50 +10,34 @@ export const getSongNum = async () => {
     }
 }
 
-export const getSongList = async (songType, pageNum, pageSize) => {
+export const getSongListByKey = async (key, value, pageNum, pageSize) => {
     try {
-        // console.log("!!! Fetching song list with params:", { songType, pageNum, pageSize });
         const response = await apiClient.get('/getSongList', {
             params: {
-                songType,
+                [key]: value,
                 pageNum,
                 pageSize
             }
         });
         return response.data;
     } catch (error) {
-        console.error("Error fetching song list:", error);
+        console.error("Error fetching song list by key:", error);
         throw error;
     }
 }
 
-export const getSongListByName = async (songName, pageNum, pageSize) => {
+export const getSuperSongList = async (pageNum, pageSize) => {
     try {
-        const response = await apiClient.get('/getSongList', {
+        const response = await apiClient.get('/getSuper', {
             params: {
-                songName,
+                'isSuper': 1,
                 pageNum,
                 pageSize
             }
         });
         return response.data;
     } catch (error) {
-        console.error("Error fetching song list by name:", error);
-        throw error;
-    }
-}
-
-export const getSongListById = async (songId, pageNum, pageSize) => {
-    try {
-        const id = parseInt(songId, 10);
-        const response = await apiClient.get('/getSongList', {
-            params: {
-                id, pageNum, pageSize
-            }
-        });
-        return response.data;
-    } catch (error) {
-        console.error("Error fetching song list by ID:", error);
+        console.error("Error fetching super song list:", error);
         throw error;
     }
 }

@@ -8,6 +8,14 @@ const apiClient = axios.create({
     },
 });
 
+const bilibliClient = axios.create({
+    baseURL: 'https://api.bilibili.com',
+    headers: {
+        'Content-Type': 'application/json',
+    },
+    
+})
+
 apiClient.interceptors.request.use(
     (config) => {
         const token = localStorage.getItem('token');
@@ -22,3 +30,4 @@ apiClient.interceptors.request.use(
 
 
 export default apiClient;
+export { bilibliClient };

@@ -13,10 +13,28 @@ import {
 } from '@mui/material';
 import CircularProgress from '@mui/material/CircularProgress';
 import Box from '@mui/material/Box';
-import { setPersistentSearch, fetchSongsById, fetchSongsByType, incrementPage } from '../store/songSlice';
+import { setPersistentSearch, fetchSongsByKeyValue, incrementPage } from '../store/songSlice';
 import { motion, AnimatePresence } from 'framer-motion';
 import GradientText from '../animations/GradientText';
 import CopyToClipboardSnackbar from '../services/copyUtils';
+
+const scColorMapping = {
+    low: ["#E1F5FE", "#81D4FA", "#2962FF"],
+    medium: ["#FFE57F", "#FFB74D", "#FF6D00"], 
+    high: ["#FFEBEE", "#FF8A80", "#D50000"], 
+};
+
+const getSCColor = (scValue, i) => {
+    if (!scValue) return null;
+    const scNumber = parseInt(scValue);
+    if (scNumber < 50) {
+        return scColorMapping.low[i];
+    } else if (scNumber >= 50 && scNumber < 100) {
+        return scColorMapping.medium[i];
+    } else {
+        return scColorMapping.high[i];
+    }
+};
 
 const FrostedTableContainer = styled(TableContainer)(({ theme }) => ({
     backgroundColor: 'rgba(255, 255, 255, 0.3)',
@@ -53,9 +71,9 @@ const ResultTable = () => {
 
     useEffect(() => {
         if (!persistentKeyword) {
-            const defaultType = "";  // 默认歌单类型
+            const defaultType = "";  
             dispatch(setPersistentSearch({ mode: "type", keyword: defaultType }));
-            dispatch(fetchSongsByType({ songType: defaultType, pageNum: 1, pageSize }));
+            dispatch(fetchSongsByKeyValue({ key: 'songType', value: defaultType, pageNum: 1, pageSize }));
         }
     }, [persistentKeyword, dispatch, pageSize]);
 
@@ -65,11 +83,7 @@ const ResultTable = () => {
         observer.current = new IntersectionObserver(entries => {
             if (entries[0].isIntersecting) {
                 dispatch(incrementPage());
-                if (persistentMode === "type") {
-                    dispatch(fetchSongsByType({ songType: persistentKeyword, pageNum: pageNum + 1, pageSize }));
-                } else if (persistentMode === "id") {
-                    dispatch(fetchSongsById({ songId: persistentKeyword, pageNum: pageNum + 1, pageSize }));
-                }
+                dispatch(fetchSongsByKeyValue({ key: persistentMode, value: persistentKeyword, pageNum: pageNum + 1, pageSize }));
             }
         });
         if (node) observer.current.observe(node);
@@ -132,7 +146,6 @@ const ResultTable = () => {
                                         whileTap={{ backgroundColor: 'rgba(0, 0, 0, 0.15)' }}
                                         onClick={() => handleRowClick(song.songName)}
                                     >
-                                        {/* <TableRow onClick={() => handleRowClick(song.songName)}> */}
                                         {rowHasExclusive ? (
                                             <>
                                                 <FrostedTableCell sx={{ maxWidth: '150px' }}>{renderCell(song.songName, true, gradientSchemeB)}</FrostedTableCell>
@@ -152,10 +165,11 @@ const ResultTable = () => {
                                                     <Chip
                                                         label={song.remarks}
                                                         sx={{
-                                                            backgroundColor: "#FFD700",
-                                                            border: "4px solid #FFAB00",
+                                                            backgroundColor: getSCColor(song.remarks, 0),
+                                                            border: `4px solid ${getSCColor(song.remarks, 1)}`,
                                                             fontWeight: "bold",
-                                                            color: "#000",
+                                                            color: getSCColor(song.remarks, 2),
+                                                            borderRadius: "8px"
                                                         }}
                                                     />
                                                 </FrostedTableCell>
@@ -171,7 +185,6 @@ const ResultTable = () => {
                                                 <FrostedTableCell>{song.info}</FrostedTableCell>
                                             </>
                                         )}
-                                        {/* </TableRow> */}
                                     </motion.tr>
                                 );
                             })}

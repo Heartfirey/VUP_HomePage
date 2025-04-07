@@ -1,41 +1,33 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import { getSongList, getSongListByName, getSongListById } from '../services/songApi';
+import { getSongListByKey, getSuperSongList } from '../services/songApi';
 
 
+export const fetchSongsByKeyValue = createAsyncThunk(
+    'song/fetchSongsByKeyValue',
+    async ({ key, value, pageNum, pageSize }, { rejectWithValue }) => {
+        try {
+            // fit for fucking 雪域provealms backend API.
+            if (key === 'isSuper') {
+                const response = await getSuperSongList(pageNum, pageSize);
+                return { songs: response.data, pageNum };
+            }
+            // finish fucking 雪域provealms backend API.
+            const response = await getSongListByKey(key, value, pageNum, pageSize);
+            const { list, pageNum: currentPage } = response.data;
+            return { songs: list, pageNum: currentPage };
+        } catch (error) {
+            return rejectWithValue(error.message);
+        }
+    }
+)
 
 export const fetchCandidatesByName = createAsyncThunk(
     'song/fetchCandidatesByName',
     async ({ songName, pageNum, pageSize }, { rejectWithValue }) => {
         try {
-            const response = await getSongListByName(songName, pageNum, pageSize);
+            const response = await getSongListByKey({key: 'songName', value: songName, pageNum, pageSize});
             const { list } = response.data;
             return list;
-        } catch (error) {
-            return rejectWithValue(error.message);
-        }
-    }
-);
-
-export const fetchSongsByType = createAsyncThunk(
-    'song/fetchSongsByType',
-    async ({ songType, pageNum, pageSize }, { rejectWithValue }) => {
-        try {
-            const response = await getSongList(songType, pageNum, pageSize);
-            const { list, pageNum: currentPage } = response.data;
-            return { songs: list, pageNum: currentPage };
-        } catch (error) {
-            return rejectWithValue(error.message);
-        }
-    }
-);
-
-export const fetchSongsById = createAsyncThunk(
-    'song/fetchSongsById',
-    async ({ songId, pageNum, pageSize }, { rejectWithValue }) => {
-        try {
-            const response = await getSongListById(songId, pageNum, pageSize);
-            const { list, pageNum: currentPage } = response.data;
-            return { songs: list, pageNum: currentPage };
         } catch (error) {
             return rejectWithValue(error.message);
         }
@@ -76,6 +68,40 @@ const songSlice = createSlice({
     },
     extraReducers: (builder) => {
         builder
+            .addCase(fetchSongsByKeyValue.pending, (state) => {
+                state.loading = true;
+                state.error = null;
+            })
+            .addCase(fetchSongsByKeyValue.fulfilled, (state, action) => {
+                state.loading = false;
+                if (action.payload.pageNum === 1) {
+                    state.songs = action.payload.songs;
+                } else {
+                    state.songs = [...state.songs, ...action.payload.songs];
+                }
+            })
+            .addCase(fetchSongsByKeyValue.rejected, (state, action) => {
+                state.loading = false;
+                state.error = action.payload;
+            });
+        // builder
+        //     .addCase(fetchSuperSongList.pending, (state) => {
+        //         state.loading = true;
+        //         state.error = null;
+        //     })
+        //     .addCase(fetchSuperSongList.fulfilled, (state, action) => {
+        //         state.loading = false;
+        //         if (action.payload.pageNum === 1) {
+        //             state.songs = action.payload.songs;
+        //         } else {
+        //             state.songs = [...state.songs, ...action.payload.songs];
+        //         }
+        //     })
+        //     .addCase(fetchSuperSongList.rejected, (state, action) => {
+        //         state.loading = false;
+        //         state.error = action.payload;
+        //     });
+        builder
             .addCase(fetchCandidatesByName.pending, (state) => {
                 state.loading = true;
                 state.error = null;
@@ -85,44 +111,6 @@ const songSlice = createSlice({
                 state.candidateSuggestions = action.payload;
             })
             .addCase(fetchCandidatesByName.rejected, (state, action) => {
-                state.loading = false;
-                state.error = action.payload;
-            });
-
-        // 按钮检索更新 table
-        builder
-            .addCase(fetchSongsByType.pending, (state) => {
-                state.loading = true;
-                state.error = null;
-            })
-            .addCase(fetchSongsByType.fulfilled, (state, action) => {
-                state.loading = false;
-                if (action.payload.pageNum === 1) {
-                    state.songs = action.payload.songs;
-                } else {
-                    state.songs = [...state.songs, ...action.payload.songs];
-                }
-            })
-            .addCase(fetchSongsByType.rejected, (state, action) => {
-                state.loading = false;
-                state.error = action.payload;
-            });
-
-        // 候选项检索更新 table
-        builder
-            .addCase(fetchSongsById.pending, (state) => {
-                state.loading = true;
-                state.error = null;
-            })
-            .addCase(fetchSongsById.fulfilled, (state, action) => {
-                state.loading = false;
-                if (action.payload.pageNum === 1) {
-                    state.songs = action.payload.songs;
-                } else {
-                    state.songs = [...state.songs, ...action.payload.songs];
-                }
-            })
-            .addCase(fetchSongsById.rejected, (state, action) => {
                 state.loading = false;
                 state.error = action.payload;
             });

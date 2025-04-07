@@ -3,6 +3,8 @@ import Alert from '@mui/material/Alert';
 import Snackbar from '@mui/material/Snackbar';
 import LinearProgress from '@mui/material/LinearProgress';
 
+import TaskAltRoundedIcon from '@mui/icons-material/TaskAltRounded';
+
 
 async function copyToClipboard(text) {
     if (navigator.clipboard && navigator.clipboard.writeText) {
@@ -80,11 +82,16 @@ const CopyToClipboardSnackbar = forwardRef((props, ref) => {
         >
             <Alert
                 severity="success"
+                iconMapping={{
+                    success: <TaskAltRoundedIcon sx={{ color: '#c2185b' }} /> 
+                }}
                 sx={{
                     position: 'relative',
                     overflow: 'hidden',
                     borderRadius: '4px',
-                    pb: 1
+                    pb: 1,
+                    backgroundColor: '#f8bbd0',
+                    color: '#c2185b'
                 }}
             >
                 {copiedText} 已经复制到剪切板了喵~
@@ -97,7 +104,7 @@ const CopyToClipboardSnackbar = forwardRef((props, ref) => {
                         left: 0,
                         right: 0,
                         height: '4px',
-                        '& .MuiLinearProgress-bar': { backgroundColor: '#90ee90' }
+                        '& .MuiLinearProgress-bar': { backgroundColor: '#f48fb1' }
                     }}
                 />
             </Alert>
