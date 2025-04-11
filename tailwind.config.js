@@ -18,8 +18,9 @@ module.exports = {
             },
             animation: {
                 shine: 'shine 5s linear infinite',
-                gradient: 'gradient 8s linear infinite'
+                gradient: 'gradient 8s linear infinite',
             },
+            
         },
     },
     plugins: [],

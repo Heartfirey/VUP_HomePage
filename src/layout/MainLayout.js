@@ -1,5 +1,6 @@
 import React from "react";
 import config from '../config';
+import { useSelector } from 'react-redux';
 import { Outlet } from 'react-router-dom';
 import { Container } from '@mui/material';
 import Fade from '@mui/material/Fade';
@@ -53,6 +54,13 @@ function ScrollTop(props) {
 }
 
 export default function MainLayout({ props, children }) {
+    const { roomInfo } = useSelector(state => state.bilibiliLive);
+
+    let isOnLive = false;
+    if(roomInfo) {
+        isOnLive = roomInfo.live_status === 1;
+    }
+
     return (
         <React.Fragment>
             {config.siteSettings.enableAurora && <Aurora
@@ -63,7 +71,7 @@ export default function MainLayout({ props, children }) {
             />}
             {config.siteSettings.enableSakuraParticles && <SakuraBG />} 
             {config.siteSettings.enableSplashCursor && <SplashCursor />}
-            <div className="relative md:absolute top-0 md:left-1/3 w-full h-full z-9"><Lanyard /></div>
+            {isOnLive && <div className="relative md:absolute top-0 md:left-1/3 w-full h-full z-9"><Lanyard /></div>}
             <ClickSpark sparkColor='#FF80AB' sparkSize={20} sparkRadius={25} sparkCount={8} duration={600}>
                 <div style={{ backgroundImage: `url(${sakuraBGPNG})`, backgroundRepeat: 'no-repeat', backgroundPosition: 'center', backgroundSize: 'cover', position: 'fixed', top: 0, left: 0, zIndex: -1, objectFit: 'cover', width: '100vw', height: '100vh' }}></div>
                 <NavBar />

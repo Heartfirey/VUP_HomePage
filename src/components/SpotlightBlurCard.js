@@ -1,7 +1,8 @@
 import * as React from 'react';
+import { useSelector } from 'react-redux';
 import { useRef, useState, useEffect } from "react";
 import { styled, alpha } from '@mui/material/styles';
-import { motion, useAnimation } from 'framer-motion';
+import { motion, useAnimation, AnimatePresence } from 'framer-motion';
 import Card from '@mui/material/Card';
 
 const GlassCard = styled(Card)(({ theme }) => ({
@@ -110,5 +111,48 @@ export default function SpotlightBlurCard({ children, className, spotlightColor 
                 {children}
             </GlassCard>
         </motion.div>
+    );
+}
+
+export function CardSwitcher({ children }) {
+    const activeCard = useSelector(state => state.cardSwitcher.activeCard);
+
+    const variants = {
+        initial0: { x: 0, opacity: 1 },
+        exit0: { x: -300, opacity: 0, transition: { duration: 0.5 } },
+        initial1: { x: 300, opacity: 0 },
+        animate1: { x: 0, opacity: 1, transition: { duration: 0.5 } },
+        exit1: { x: 300, opacity: 0, transition: { duration: 0.5 } },
+    };
+
+    return (
+        <div className="relative min-h-[250px] md:min-h-[300px]">
+            <AnimatePresence initial={false}>
+                {activeCard === 0 && (
+                    <motion.div
+                        key="card0"
+                        initial="initial0"
+                        animate="initial0"
+                        exit="exit0"
+                        variants={variants}
+                        className="absolute inset-0"
+                    >
+                        {children[0]}
+                    </motion.div>
+                )}
+                {activeCard === 1 && (
+                    <motion.div
+                        key="card1"
+                        initial="initial1"
+                        animate="animate1"
+                        exit="exit1"
+                        variants={variants}
+                        className="absolute inset-0"
+                    >
+                        {children[1]}
+                    </motion.div>
+                )}
+            </AnimatePresence>
+        </div>
     );
 }

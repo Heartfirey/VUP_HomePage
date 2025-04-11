@@ -3,19 +3,12 @@ import config from '../config';
 
 const apiClient = axios.create({
     baseURL: config.api.backendAPIUrl,
-    withCredentials: true,
+    // withCredentials: true,
     headers: {
         'Content-Type': 'application/json',
     },
 });
 
-const bilibiliLiveClient = axios.create({
-    baseURL: config.api.bilibiliApiUrl,
-    headers: {
-        'Content-Type': 'application/json',
-    },
-    
-})
 
 apiClient.interceptors.request.use(
     (config) => {
@@ -31,4 +24,3 @@ apiClient.interceptors.request.use(
 
 
 export default apiClient;
-export { bilibiliLiveClient };

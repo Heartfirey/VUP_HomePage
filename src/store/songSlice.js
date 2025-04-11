@@ -84,23 +84,6 @@ const songSlice = createSlice({
                 state.loading = false;
                 state.error = action.payload;
             });
-        // builder
-        //     .addCase(fetchSuperSongList.pending, (state) => {
-        //         state.loading = true;
-        //         state.error = null;
-        //     })
-        //     .addCase(fetchSuperSongList.fulfilled, (state, action) => {
-        //         state.loading = false;
-        //         if (action.payload.pageNum === 1) {
-        //             state.songs = action.payload.songs;
-        //         } else {
-        //             state.songs = [...state.songs, ...action.payload.songs];
-        //         }
-        //     })
-        //     .addCase(fetchSuperSongList.rejected, (state, action) => {
-        //         state.loading = false;
-        //         state.error = action.payload;
-        //     });
         builder
             .addCase(fetchCandidatesByName.pending, (state) => {
                 state.loading = true;
