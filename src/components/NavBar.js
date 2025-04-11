@@ -1,4 +1,5 @@
 import * as React from 'react';
+import config from '../config';
 import { styled, alpha } from '@mui/material/styles';
 import Box from '@mui/material/Box';
 import AppBar from '@mui/material/AppBar';
@@ -6,12 +7,11 @@ import Toolbar from '@mui/material/Toolbar';
 import Button from '@mui/material/Button';
 import Avatar from '@mui/material/Avatar';
 import Container from '@mui/material/Container';
-// import Divider from '@mui/material/Divider';
 import { useLocation, useNavigate } from 'react-router-dom';
 import publicRoutes from '../routes/publicRoutes';
 import { pink, grey } from '@mui/material/colors';
-import aylnAvatar from '../assets/aylnAvatar2.png';
-// import ColorModeIconDropdown from '../../shared-theme/ColorModeIconDropdown';
+const aylnAvatar = require(`../assets/${config.siteSettings.avatarFile}`);
+
 
 const StyledToolbar = styled(Toolbar)(({ theme }) => ({
     display: 'flex',

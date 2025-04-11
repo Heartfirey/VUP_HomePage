@@ -1,15 +1,16 @@
 import axios from 'axios';
+import config from '../config';
 
 const apiClient = axios.create({
-    baseURL: 'https://ayln.top/api',
+    baseURL: config.api.backendAPIUrl,
     withCredentials: true,
     headers: {
         'Content-Type': 'application/json',
     },
 });
 
-const bilibliClient = axios.create({
-    baseURL: 'https://api.bilibili.com',
+const bilibiliLiveClient = axios.create({
+    baseURL: config.api.bilibiliApiUrl,
     headers: {
         'Content-Type': 'application/json',
     },
@@ -30,4 +31,4 @@ apiClient.interceptors.request.use(
 
 
 export default apiClient;
-export { bilibliClient };
+export { bilibiliLiveClient };

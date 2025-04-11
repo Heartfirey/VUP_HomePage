@@ -1,4 +1,5 @@
 import React from "react";
+import config from '../config';
 import { Outlet } from 'react-router-dom';
 import { Container } from '@mui/material';
 import Fade from '@mui/material/Fade';
@@ -12,11 +13,12 @@ import ClickSpark from '../animations/ClickSpark';
 import Lanyard from "../animations/Lanyard";
 
 
-// import SakuraBG from '../components/SakuraBG';
-// import Aurora from "../animations/Aoura";
+import SakuraBG from '../components/SakuraBG';
+import Aurora from "../animations/Aoura";
 // import Particles from "../animations/Particles";
 import SplashCursor from "../animations/SplashCursor";
-import sakuraBGPNG from '../assets/sakuraBackground.png';
+const sakuraBGPNG = require(`../assets/${config.siteSettings.backgroundFile}`);
+
 
 function ScrollTop(props) {
     const { children } = props;
@@ -53,14 +55,14 @@ function ScrollTop(props) {
 export default function MainLayout({ props, children }) {
     return (
         <React.Fragment>
-            {/* <Aurora
+            {config.siteSettings.enableAurora && <Aurora
                 colorStops={["#FFB7C5", "#FF94B4", "#FF80AB"]}
                 blend={0.6}
                 amplitude={3.0}
                 speed={0.5}
-            /> */}
-            {/* <SakuraBG />  */}
-            <SplashCursor />
+            />}
+            {config.siteSettings.enableSakuraParticles && <SakuraBG />} 
+            {config.siteSettings.enableSplashCursor && <SplashCursor />}
             <div className="relative md:absolute top-0 md:left-1/3 w-full h-full z-9"><Lanyard /></div>
             <ClickSpark sparkColor='#FF80AB' sparkSize={20} sparkRadius={25} sparkCount={8} duration={600}>
                 <div style={{ backgroundImage: `url(${sakuraBGPNG})`, backgroundRepeat: 'no-repeat', backgroundPosition: 'center', backgroundSize: 'cover', position: 'fixed', top: 0, left: 0, zIndex: -1, objectFit: 'cover', width: '100vw', height: '100vh' }}></div>

@@ -1,5 +1,6 @@
 // MainPage.jsx
 import React from 'react';
+import config from '../config';
 import { useRef, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Box } from '@mui/material';
@@ -59,7 +60,7 @@ const MainPage = () => {
                 >
                     <div ref={containerRef} style={{ position: 'relative' }}>
                         <VariableProximity
-                            label={'阿音Ayln的直播间'}
+                            label={config.anchorInfo.name+'的直播间'}
                             className={'variable-proximity-demo text-3xl font-bold md:text-5xl'}
                             fromFontVariationSettings="'wght' 400, 'opsz' 9"
                             toFontVariationSettings="'wght' 1000, 'opsz' 40"
