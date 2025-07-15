@@ -1,6 +1,6 @@
 import config from '../config';
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import { getRoomInfo, getAnchorInfo } from '../services/bilibiliApi';
+import { getRoomInfo, getAnchorInfo } from '../services/API/backend/bilibiliApi';
 
 export const fetchRoomInfo = createAsyncThunk(
     'bilibiliLive/fetchRoomInfo',

@@ -1,17 +1,17 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import { getSongListByKey, getSuperSongList } from '../services/songApi';
+import { getSongListByKey, getSuperSongList, getSongByKeyword } from '../services/API/backend/songApi';
 
 
 export const fetchSongsByKeyValue = createAsyncThunk(
     'song/fetchSongsByKeyValue',
     async ({ key, value, pageNum, pageSize }, { rejectWithValue }) => {
         try {
-            // fit for fucking 雪域provealms backend API.
+            // Compatibility for backend API
             if (key === 'isSuper') {
                 const response = await getSuperSongList(pageNum, pageSize);
-                return { songs: response.data, pageNum };
+                return { songs: response.data.list, pageNum };
             }
-            // finish fucking 雪域provealms backend API.
+            // End of compatibility code
             const response = await getSongListByKey(key, value, pageNum, pageSize);
             const { list, pageNum: currentPage } = response.data;
             return { songs: list, pageNum: currentPage };
@@ -23,11 +23,11 @@ export const fetchSongsByKeyValue = createAsyncThunk(
 
 export const fetchCandidatesByName = createAsyncThunk(
     'song/fetchCandidatesByName',
-    async ({ songName, pageNum, pageSize }, { rejectWithValue }) => {
+    async ({ localQuery, pageNum, pageSize }, { rejectWithValue }) => {
         try {
-            const response = await getSongListByKey({key: 'songName', value: songName, pageNum, pageSize});
-            const { list } = response.data;
-            return list;
+            console.log("Fetching candidates for song name:", localQuery);
+            const response = await getSongByKeyword(localQuery);
+            return response.data;
         } catch (error) {
             return rejectWithValue(error.message);
         }

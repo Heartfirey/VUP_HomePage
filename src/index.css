@@ -2,6 +2,88 @@
 @tailwind components;
 @tailwind utilities;
 
+/* 导入 highlight.js 深色主题 */
+@import url('../node_modules/highlight.js/styles/tokyo-night-dark.css');
+
+/* 文本滚动动画 - 使用简单的像素滚动 */
+@keyframes scroll-text {
+  0%, 25% {
+    transform: translateX(0);
+  }
+  75% {
+    transform: translateX(var(--scroll-end, -50px));
+  }
+  100% {
+    transform: translateX(0);
+  }
+}
+
+/* 滚动文本容器 */
+.scroll-container {
+  position: relative;
+  overflow: hidden;
+}
+
+/* 滚动文本 */
+.scroll-text {
+  animation: scroll-text ease-in-out infinite;
+  animation-duration: var(--duration, 6s);
+  animation-play-state: var(--play-state, running);
+}
+
+.scroll-text:hover {
+  animation-play-state: running;
+}
+
+/* Markdown prose 样式覆盖 */
+.prose {
+  max-width: none;
+}
+
+.prose h1, .prose h2, .prose h3, .prose h4, .prose h5, .prose h6 {
+  color: inherit;
+  margin-top: 1.5em;
+  margin-bottom: 0.5em;
+}
+
+.prose p {
+  margin-top: 0.75em;
+  margin-bottom: 0.75em;
+}
+
+.prose ul, .prose ol {
+  margin-top: 0.75em;
+  margin-bottom: 0.75em;
+}
+
+.prose li {
+  margin-top: 0.25em;
+  margin-bottom: 0.25em;
+}
+
+/* 代码高亮容器样式 */
+.prose pre {
+  background-color: rgba(0, 0, 0, 0.3) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 1rem;
+  overflow-x: auto;
+  margin: 1rem 0;
+}
+
+.prose code {
+  background-color: rgba(255, 255, 255, 0.1);
+  padding: 0.2em 0.4em;
+  border-radius: 4px;
+  font-size: 0.875em;
+}
+
+.prose pre code {
+  background-color: transparent;
+  padding: 0;
+  border-radius: 0;
+}
+
 body {
   margin: 0;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',

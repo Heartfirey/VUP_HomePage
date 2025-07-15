@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useMemo } from "react";
 import config from '../config';
 import { useSelector } from 'react-redux';
 import { Outlet } from 'react-router-dom';
@@ -12,11 +12,11 @@ import NavBar from "../components/NavBar";
 import Footer from "../components/Footer";
 import ClickSpark from '../animations/ClickSpark';
 import Lanyard from "../animations/Lanyard";
-
+import performanceConfig from "../utils/performanceConfig";
+import BlurPerformanceMonitor from "../components/BlurPerformanceMonitor";
 
 import SakuraBG from '../components/SakuraBG';
 import Aurora from "../animations/Aoura";
-// import Particles from "../animations/Particles";
 import SplashCursor from "../animations/SplashCursor";
 const sakuraBGPNG = require(`../assets/${config.siteSettings.backgroundFile}`);
 
@@ -53,25 +53,34 @@ function ScrollTop(props) {
     );
 }
 
-export default function MainLayout({ props, children }) {
+const MainLayout = React.memo(function MainLayout({ props, children }) {
     const { roomInfo } = useSelector(state => state.bilibiliLive);
 
-    let isOnLive = false;
-    if(roomInfo) {
-        isOnLive = roomInfo.live_status === 1;
-    }
+    const isOnLive = useMemo(() => {
+        return roomInfo?.live_status === 1;
+    }, [roomInfo?.live_status]);
+
+    // 检测是否为低性能设备
+    const isLowPerformanceDevice = useMemo(() => {
+        return performanceConfig.detectDevicePerformance().isLowPerformance;
+    }, []);
 
     return (
         <React.Fragment>
-            {config.siteSettings.enableAurora && <Aurora
+            {/* Only enable visual effects on non-low-performance devices */}
+            {config.siteSettings.enableAurora && !isLowPerformanceDevice && <Aurora
                 colorStops={["#FFB7C5", "#FF94B4", "#FF80AB"]}
                 blend={0.6}
                 amplitude={3.0}
                 speed={0.5}
             />}
-            {config.siteSettings.enableSakuraParticles && <SakuraBG />} 
-            {config.siteSettings.enableSplashCursor && <SplashCursor />}
+            {config.siteSettings.enableSakuraParticles && !isLowPerformanceDevice && <SakuraBG />} 
+            {config.siteSettings.enableSplashCursor && !isLowPerformanceDevice && <SplashCursor />}
             {isOnLive && <div className="relative md:absolute top-0 md:left-1/3 w-full h-full z-9"><Lanyard /></div>}
+            
+            {/* Control performance monitoring display based on configuration */}
+            {config.performanceMonitor?.enableBlurMonitor && <BlurPerformanceMonitor />}
+            
             <ClickSpark sparkColor='#FF80AB' sparkSize={20} sparkRadius={25} sparkCount={8} duration={600}>
                 <div style={{ backgroundImage: `url(${sakuraBGPNG})`, backgroundRepeat: 'no-repeat', backgroundPosition: 'center', backgroundSize: 'cover', position: 'fixed', top: 0, left: 0, zIndex: -1, objectFit: 'cover', width: '100vw', height: '100vh' }}></div>
                 <NavBar />
@@ -88,5 +97,7 @@ export default function MainLayout({ props, children }) {
                 </ScrollTop>
             </ClickSpark>
         </React.Fragment>
-    )
-}
+    );
+});
+
+export default MainLayout;

@@ -1,5 +1,5 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import { getSongNum } from '../services/songApi';
+import { getSongNum } from '../services/API/backend/songApi';
 
 export const fetchSongNum = createAsyncThunk('song/fetchSongNum', async () => {
     const response = await getSongNum();

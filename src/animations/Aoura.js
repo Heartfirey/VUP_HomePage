@@ -1,5 +1,6 @@
 import { Renderer, Program, Mesh, Color, Triangle } from "ogl";
 import { useEffect, useRef } from "react";
+import performanceConfig from "../utils/performanceConfig";
 
 const VERT = `#version 300 es
 in vec2 position;
@@ -174,8 +175,18 @@ export default function Aurora(props) {
         ctn.appendChild(gl.canvas);
 
         let animateId = 0;
+        let lastTime = 0;
+        const targetFPS = performanceConfig.getTargetFPS();
+        const frameInterval = 1000 / targetFPS;
+        
         const update = (t) => {
-            animateId = requestAnimationFrame(update);
+            // Limit frame rate to improve performance
+            if (t - lastTime < frameInterval) {
+                animateId = requestAnimationFrame(update);
+                return;
+            }
+            lastTime = t;
+            
             const { time = t * 0.01, speed = 1.0 } = propsRef.current;
             program.uniforms.uTime.value = time * speed * 0.1;
             program.uniforms.uAmplitude.value = propsRef.current.amplitude ?? 1.0;
@@ -186,6 +197,7 @@ export default function Aurora(props) {
                 return [c.r, c.g, c.b];
             });
             renderer.render({ scene: mesh });
+            animateId = requestAnimationFrame(update);
         };
         animateId = requestAnimationFrame(update);
 

@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import {
     Paper,
@@ -12,9 +12,11 @@ import {
     Typography
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
-import RawBlurCard from './RawBlurCard';
+import { OptimizedRawBlurCardNoAnimate } from './OptimizedBlurCard';
 import FrostedButton from './FrostedButton';
-import { pink, amber } from '@mui/material/colors';
+import { blue, amber } from '@mui/material/colors';
+import { getOptimizedBlurStyle } from '../utils/blurOptimization';
+import performanceConfig from '../utils/performanceConfig';
 import {
     fetchSongsByKeyValue,
     fetchCandidatesByName,
@@ -23,7 +25,7 @@ import {
     resetSongs
 } from '../store/songSlice';
 import CopyToClipboardSnackbar from '../services/copyUtils';
-import { getRandomSong } from '../services/songApi';
+import { getRandomSong } from '../services/API/backend/songApi';
 
 //* Icons
 import LibraryMusicTwoToneIcon from '@mui/icons-material/LibraryMusicTwoTone';
@@ -41,56 +43,100 @@ const candidateJson = [
     { name: "原创歌曲", keyword: "原创", reqKey: "songType" },
     { name: "儿歌歌曲", keyword: "儿歌", reqKey: "songType" },
     { name: "全部歌曲", keyword: "", reqKey: "songType" },
-]
+];
 
-export default function SearchCard() {
+// 记忆化的按钮组件
+const MemoizedFrostedButton = React.memo(FrostedButton);
+
+const SearchCard = React.memo(() => {
     const dispatch = useDispatch();
-    const { pageSize, candidateSuggestions, } = useSelector(state => state.song);
+    const { pageSize, candidateSuggestions } = useSelector(state => state.song);
     const [localQuery, setLocalQuery] = useState('');
     const [anchorEl, setAnchorEl] = useState(null);
     const [openPopper, setOpenPopper] = useState(false);
-    const [isSuperSong, setIsSuperSong] = useState(false); 
+    const [isSuperSong, setIsSuperSong] = useState(false);
     const copyRef = useRef();
+    
+    // 防抖搜索
+    const debouncedQuery = useRef(null);
+    
+    // 获取性能配置
+    const blurConfig = useMemo(() => performanceConfig.getBlurConfig(), []);
+    
+    // 优化的模糊样式
+    const optimizedPopperStyle = useMemo(() => {
+        if (!blurConfig.enabled) {
+            return {
+                background: 'rgba(255, 255, 255, 0.95)',
+                border: '1px solid rgba(0, 0, 0, 0.1)',
+                borderRadius: '16px',
+                boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)',
+            };
+        }
+        
+        const blurStyle = getOptimizedBlurStyle(20, 'normal');
+        return {
+            ...blurStyle,
+            background: blurStyle.backgroundColor || 'rgba(255, 255, 255, 0.85)',
+            border: '1px solid rgba(255, 255, 255, 0.2)',
+            borderRadius: '16px',
+            boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)',
+            overflow: 'hidden'
+        };
+    }, [blurConfig]);
 
     useEffect(() => {
-        const timer = setTimeout(() => {
-            dispatch(setSearchQuery(localQuery));
-            dispatch(fetchCandidatesByName({ localQuery, pageNum: 1, pageSize }));
-        }, 500);
-        return () => clearTimeout(timer);
+        // 清除之前的定时器
+        if (debouncedQuery.current) {
+            clearTimeout(debouncedQuery.current);
+        }
+        
+        // 延迟执行搜索
+        debouncedQuery.current = setTimeout(() => {
+            if (localQuery.trim()) {
+                dispatch(setSearchQuery(localQuery));
+                dispatch(fetchCandidatesByName({ localQuery, pageNum: 1, pageSize }));
+            }
+        }, 300); // 增加防抖延迟到300ms
+        
+        return () => {
+            if (debouncedQuery.current) {
+                clearTimeout(debouncedQuery.current);
+            }
+        };
     }, [localQuery, dispatch, pageSize]);
 
-    const handleSearchClick = () => {
-        console.log("Search clicked with query:", localQuery);
+    // 记忆化事件处理函数
+    const handleSearchClick = useCallback(() => {
         if (localQuery.trim() === "") return;
         dispatch(setSearchQuery(localQuery));
         dispatch(fetchCandidatesByName({ localQuery, pageNum: 1, pageSize }));
-    };
+    }, [localQuery, dispatch, pageSize]);
 
-    const handleCandidateClick = (candidate) => {
-        console.log("Candidate clicked:", candidate);
+    const handleCandidateClick = useCallback((candidate) => {
         dispatch(setPersistentSearch({ mode: "id", keyword: candidate.id }));
         dispatch(resetSongs());
         dispatch(fetchSongsByKeyValue({ key: 'id', value: candidate.id, pageNum: 1, pageSize }));
-    };
+        setOpenPopper(false);
+    }, [dispatch, pageSize]);
 
-    const handleButtonClick = (keyword, reqKey) => {
+    const handleButtonClick = useCallback((keyword, reqKey) => {
         dispatch(setPersistentSearch({ mode: "songType", keyword: keyword }));
         dispatch(resetSongs());
         dispatch(fetchSongsByKeyValue({ key: reqKey, value: keyword, pageNum: 1, pageSize }));
         setLocalQuery("");
-    };
+    }, [dispatch, pageSize]);
 
-    const handleRandomSongClick = () => {
+    const handleRandomSongClick = useCallback(() => {
         getRandomSong().then((res) => {
             const song = res.data;
             if (copyRef.current) {
                 copyRef.current.copy(song.songName);
             }
         });
-    };
+    }, []);
 
-    const handleSuperSongClick = () => {
+    const handleSuperSongClick = useCallback(() => {
         if (isSuperSong) {
             dispatch(setPersistentSearch({ mode: 'songType', keyword: '' }));
             dispatch(resetSongs());
@@ -101,14 +147,29 @@ export default function SearchCard() {
             dispatch(resetSongs());
             dispatch(fetchSongsByKeyValue({ key: 'isSuper', value: 1, pageNum: 1, pageSize: 10 }));
         }
-
-        // 切换按钮状态
         setIsSuperSong(!isSuperSong);
-    }
+    }, [isSuperSong, dispatch, pageSize]);
+
+    // 记忆化候选建议
+    const memoizedCandidates = useMemo(() => {
+        return candidateSuggestions.slice(0, 5); // 限制显示数量以提升性能
+    }, [candidateSuggestions]);
+
+    // 记忆化按钮列表
+    const memoizedButtons = useMemo(() => {
+        return candidateJson.map((btn, index) => (
+            <MemoizedFrostedButton 
+                key={`${btn.keyword}-${index}`} 
+                onClick={() => handleButtonClick(btn.keyword, btn.reqKey)}
+            >
+                <span className="text-lg font-fold" style={{ color: blue[600] }}>{btn.name}</span>
+            </MemoizedFrostedButton>
+        ));
+    }, [handleButtonClick]);
 
     return (
         <>
-        <RawBlurCard className="overflow-visible">
+        <OptimizedRawBlurCardNoAnimate className="overflow-visible" blurPriority="high">
             <CardContent className="flex flex-col justify-center space-y-4">
                 <Paper
                     variant="outlined"
@@ -146,26 +207,67 @@ export default function SearchCard() {
                     sx={{
                         width: anchorEl?.offsetWidth,
                         zIndex: 1300,
-                        marginTop: '4px'
+                        marginTop: '12px'
                     }}
                 >
-                    <Paper elevation={3} sx={{ width: '100%' }}>
+                    <Paper 
+                        elevation={0}
+                        sx={optimizedPopperStyle}
+                    >
                         <List dense sx={{ py: 0 }}>
-                            {candidateSuggestions?.map((candidate) => (
+                            {candidateSuggestions?.map((candidate, index) => (
                                 <ListItem
                                     key={candidate.id}
                                     button
                                     onClick={() => handleCandidateClick(candidate)}
                                     sx={{
+                                        py: 1.5,
+                                        px: 2,
+                                        borderBottom: index < candidateSuggestions.length - 1 ? 
+                                            '1px solid rgba(0, 0, 0, 0.06)' : 'none',
+                                        transition: 'all 0.2s ease-in-out',
                                         '&:hover': {
-                                            backgroundColor: 'action.hover',
+                                            backgroundColor: 'rgba(25, 118, 210, 0.08)',
+                                            transform: 'translateX(4px)',
+                                        },
+                                        '&:active': {
+                                            transform: 'translateX(2px) scale(0.98)',
                                         }
                                     }}
                                 >
+                                    <LibraryMusicTwoToneIcon 
+                                        sx={{ 
+                                            mr: 1.5, 
+                                            color: blue[500],
+                                            fontSize: '1.2rem'
+                                        }} 
+                                    />
                                     <ListItemText
                                         primary={
-                                            <Typography variant="body2">
+                                            <Typography 
+                                                variant="body2"
+                                                sx={{
+                                                    fontWeight: 500,
+                                                    color: 'rgba(0, 0, 0, 0.87)',
+                                                    fontSize: '0.95rem'
+                                                }}
+                                            >
                                                 {candidate.songName}
+                                                {candidate.songOwner && (
+                                                    <span style={{ fontWeight: 400, color: 'rgba(0, 0, 0, 0.6)' }}>
+                                                        {' - '}{candidate.songOwner}
+                                                    </span>
+                                                )}
+                                                {candidate.songType && (
+                                                    <span style={{ 
+                                                        fontWeight: 400, 
+                                                        color: blue[500],
+                                                        fontSize: '0.85rem',
+                                                        marginLeft: '8px'
+                                                    }}>
+                                                        ({candidate.songType})
+                                                    </span>
+                                                )}
                                             </Typography>
                                         }
                                     />
@@ -182,15 +284,15 @@ export default function SearchCard() {
                         color: isSuperSong ? 'white' : amber[700],
                     }}
                     ><DiamondTwoToneIcon sx={{ color: isSuperSong ? 'white' : amber[700] }} /><span className="text-lg font-fold">SC歌曲</span></FrostedButton>
-                    {candidateJson.map((btn, index) => (
-                        <FrostedButton key={index} onClick={() => handleButtonClick(btn.keyword, btn.reqKey)}>
-                            <span className="text-lg font-fold" style={{ color: pink[600] }}>{btn.name}</span>
-                        </FrostedButton>
-                    ))}
+                    {memoizedButtons}
                 </div>
             </CardContent>
-        </RawBlurCard>
+        </OptimizedRawBlurCardNoAnimate>
         <CopyToClipboardSnackbar ref={copyRef} />
         </>
     );
-}
+});
+
+SearchCard.displayName = 'SearchCard';
+
+export default SearchCard;

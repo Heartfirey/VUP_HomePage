@@ -1,8 +1,8 @@
 # VUP Homepage
 
-这是一个强大的虚拟主播个人主页系统前端页面，目前用于 阿音Ayln 的歌单网站。
+这是一个强大的虚拟主播个人主页系统前端页面，目前用于 水奈Rin 的歌单网站。
 
-![image](https://github.com/user-attachments/assets/744cc3bf-f6bc-48ef-8e45-08e48c8e07a8)
+<!-- ![image](https://github.com/user-attachments/assets/744cc3bf-f6bc-48ef-8e45-08e48c8e07a8) -->
 
 Deploy
 
@@ -26,7 +26,7 @@ yarn build
 
 ### 1. SongAPI
 
-`/getSongNum`
+`/get_song_num`
 
 > 获取歌曲数目
 
@@ -40,7 +40,7 @@ yarn build
 }
 ```
 
-`/getSongList`
+`/get_song_list`
 
 > 获取歌曲列表
 
@@ -100,7 +100,7 @@ yarn build
 }
 ```
 
-`/getRandomSong`
+`/get_random_song`
 
 > 获取随机歌曲
 
@@ -142,7 +142,7 @@ yarn build
 }
 ```
 
-`/getSuper`
+`/get_super`
 
 > 获取高级歌曲（一般是付费歌曲）
 
