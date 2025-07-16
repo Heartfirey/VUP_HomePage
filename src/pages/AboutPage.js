@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { 
     Box, 
     Typography, 
@@ -8,12 +8,9 @@ import {
     Link,
     IconButton,
     Skeleton,
-    useTheme,
-    useMediaQuery,
     Fade,
     Zoom,
     Stack,
-    Divider
 } from '@mui/material';
 import { 
     Info as InfoIcon,
@@ -29,10 +26,8 @@ import {
     Business as BusinessIcon,
     Assessment as DataIcon,
     Movie as EntertainmentIcon,
-    FiberManualRecord as DotIcon,
     Person as PersonIcon
 } from '@mui/icons-material';
-import { styled } from '@mui/material/styles';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeHighlight from 'rehype-highlight';
@@ -41,8 +36,8 @@ import config from '../config';
 import { getAboutInfo, getDevLogs, getFriendLinks } from '../services/API/backend/aboutApi';
 
 const AboutPage = () => {
-    const theme = useTheme();
-    const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+    // const theme = useTheme();
+    // const isMobile = useMediaQuery(theme.breakpoints.down('md'));
     
     const [aboutInfo, setAboutInfo] = useState(null);
     const [devLogs, setDevLogs] = useState([]);

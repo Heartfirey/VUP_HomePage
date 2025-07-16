@@ -29,12 +29,22 @@ const RecordCard = ({ record, className }) => {
     
     // 格式化数字（添加K、M后缀）
     const formatNumber = (num) => {
-        if (num >= 1000000) {
-            return (num / 1000000).toFixed(1) + 'M';
-        } else if (num >= 1000) {
-            return (num / 1000).toFixed(1) + 'K';
+        // 确保是数字类型，并且大于0
+        const number = Number(num);
+        if (isNaN(number) || number <= 0) return null;
+        
+        if (number >= 1000000) {
+            return (number / 1000000).toFixed(1) + 'M';
+        } else if (number >= 1000) {
+            return (number / 1000).toFixed(1) + 'K';
         }
-        return num.toString();
+        return number.toString();
+    };
+    
+    // 检查数值是否有效（大于0）
+    const isValidCount = (count) => {
+        const num = Number(count);
+        return !isNaN(num) && num > 0;
     };
     
     // 格式化日期
@@ -80,13 +90,13 @@ const RecordCard = ({ record, className }) => {
                                     <span>{formatDuration(record.duration)}</span>
                                 </div>
                             )}
-                            {record.viewCount && record.viewCount > 0 && (
+                            {isValidCount(record.viewCount) && (
                                 <div className="flex items-center space-x-1">
                                     <VisibilityIcon sx={{ fontSize: 14 }} />
                                     <span>{formatNumber(record.viewCount)}</span>
                                 </div>
                             )}
-                            {record.likeCount && record.likeCount > 0 && (
+                            {isValidCount(record.likeCount) && (
                                 <div className="flex items-center space-x-1">
                                     <ThumbUpIcon sx={{ fontSize: 14 }} />
                                     <span>{formatNumber(record.likeCount)}</span>

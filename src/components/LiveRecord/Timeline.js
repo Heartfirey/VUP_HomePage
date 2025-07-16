@@ -1,5 +1,5 @@
 // src/components/LiveRecord/Timeline.js
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import clsx from 'clsx';
 import dayjs from 'dayjs';
 
@@ -27,6 +27,29 @@ const iconMap = {
 const Timeline = ({ points = [], streamStartTime, duration, className }) => {
     const [hoveredPoint, setHoveredPoint] = useState(null);
     const [selectedPoint, setSelectedPoint] = useState(null);
+    const [cardHeights, setCardHeights] = useState({});
+    const cardRefs = useRef({});
+    
+    // 测量卡片高度
+    useEffect(() => {
+        const measureHeights = () => {
+            const heights = {};
+            Object.keys(cardRefs.current).forEach(pointId => {
+                const element = cardRefs.current[pointId];
+                if (element) {
+                    heights[pointId] = element.offsetHeight;
+                }
+            });
+            setCardHeights(heights);
+        };
+        
+        // 初始测量
+        measureHeights();
+        
+        // 监听窗口大小变化
+        window.addEventListener('resize', measureHeights);
+        return () => window.removeEventListener('resize', measureHeights);
+    }, [points]);
     
     // 处理时间轴数据，自动添加开始和结束事件
     const processTimelinePoints = () => {
@@ -145,7 +168,6 @@ const Timeline = ({ points = [], streamStartTime, duration, className }) => {
                     zIndex: isHovered || isSelected ? 50 : 20
                 }}
             >
-                {/* Points on timeline - 简化结构 */}
                 <div
                     className={clsx(
                         "relative cursor-pointer transition-all duration-200",
@@ -176,7 +198,6 @@ const Timeline = ({ points = [], streamStartTime, duration, className }) => {
                         />
                     </div>
                     
-                    {/* Hover bubble - 改进定位逻辑 */}
                     {(isHovered || isSelected) && (
                         <div 
                             className={clsx(
@@ -221,7 +242,6 @@ const Timeline = ({ points = [], streamStartTime, duration, className }) => {
                                 </a>
                             )}
                             
-                            {/* 箭头指向时间点 - 简化定位逻辑 */}
                             <div 
                                 className="absolute"
                                 style={{
@@ -244,29 +264,21 @@ const Timeline = ({ points = [], streamStartTime, duration, className }) => {
     
     return (
         <div className={clsx("relative", className)}>
-            {/* Mobile: 重新设计的垂直时间轴 */}
             <div className="block md:hidden">
-                <div className="space-y-4">
+                <div>
                     {sortedPoints.map((point, index) => {
                         const IconComponent = iconMap[point.type] || StarIcon;
+                        const isLast = index === sortedPoints.length - 1;
+                        const cardHeight = cardHeights[point.id] || 0;
+                        const connectionHeight = cardHeight > 0 ? cardHeight + 16 - 32 - 8 : 24; // 卡片高度 + 间距 - 圆圈高度 - 间隙
+                        
                         return (
                             <div key={point.id} className="relative">
-                                {/* 时间轴连接线 - 继承当前时间点的颜色 */}
-                                {index < sortedPoints.length - 1 && (
-                                    <div 
-                                        className="absolute left-4 top-10 w-0.5 h-8"
-                                        style={{ 
-                                            backgroundColor: point.foregroundColor || '#9CA3AF',
-                                            transform: 'translateX(-1px)' 
-                                        }}
-                                    />
-                                )}
-                                
-                                <div className="flex items-start space-x-3">
-                                    {/* 时间点图标 */}
-                                    <div className="flex-shrink-0">
+                                <div className="flex items-start space-x-3 mb-4 last:mb-0">
+                                    {/* 时间点图标区域 */}
+                                    <div className="flex-shrink-0 relative">
                                         <div
-                                            className="w-8 h-8 rounded-full border-2 flex items-center justify-center shadow-lg"
+                                            className="w-8 h-8 rounded-full border-2 flex items-center justify-center shadow-lg relative z-10"
                                             style={{
                                                 backgroundColor: point.backgroundColor || 'rgba(255,255,255,0.1)',
                                                 borderColor: point.foregroundColor || '#666'
@@ -283,7 +295,10 @@ const Timeline = ({ points = [], streamStartTime, duration, className }) => {
                                     
                                     {/* 内容卡片 */}
                                     <div className="flex-1 min-w-0">
-                                        <div className="bg-white/5 rounded-lg p-3 backdrop-blur-sm border border-white/10 shadow-sm">
+                                        <div 
+                                            ref={el => cardRefs.current[point.id] = el}
+                                            className="bg-white/5 rounded-lg p-3 backdrop-blur-sm border border-white/10 shadow-sm"
+                                        >
                                             <div className="flex justify-between items-start gap-2">
                                                 <h4 className="font-medium text-white text-sm flex-1">{point.name}</h4>
                                                 <span className="text-xs text-gray-400 flex-shrink-0">
@@ -300,22 +315,32 @@ const Timeline = ({ points = [], streamStartTime, duration, className }) => {
                                                     rel="noopener noreferrer"
                                                     className="inline-flex items-center text-blue-400 hover:text-blue-300 text-xs mt-2 transition-colors"
                                                 >
-                                                    🔗 查看详情
+                                                    录播链接
                                                 </a>
                                             )}
                                         </div>
                                     </div>
                                 </div>
+                                
+                                {!isLast && (
+                                    <div 
+                                        className="absolute left-4 w-0.5 rounded-full"
+                                        style={{ 
+                                            backgroundColor: point.foregroundColor || '#9CA3AF',
+                                            top: '36px', // 从当前圆圈下方开始 (32px圆圈高度 + 4px间隙)
+                                            height: `${connectionHeight}px`, // 动态计算的高度
+                                            transform: 'translateX(-1px)'
+                                        }}
+                                    />
+                                )}
                             </div>
                         );
                     })}
                 </div>
             </div>
             
-            {/* Desktop: Horizontal timeline - 重新设计为线段间隔 */}
             <div className="hidden md:block">
                 <div className="relative mb-4" style={{ height: '80px', paddingBottom: '20px' }}>
-                    {/* 时间点 - 简化布局 */}
                     {sortedPoints.map((point, index) => (
                         <TimelinePoint
                             key={point.id}
@@ -325,7 +350,6 @@ const Timeline = ({ points = [], streamStartTime, duration, className }) => {
                         />
                     ))}
                     
-                    {/* 连接线段 - 在时间点之间绘制 */}
                     {sortedPoints.length > 1 && sortedPoints.map((point, index) => {
                         if (index >= sortedPoints.length - 1) return null;
                         
@@ -335,7 +359,7 @@ const Timeline = ({ points = [], streamStartTime, duration, className }) => {
                         return (
                             <div
                                 key={`line-${index}`}
-                                className="absolute h-0.5"
+                                className="absolute h-0.5 rounded-full"
                                 style={{
                                     top: '40px',
                                     left: `${currentPos + 2}%`, // 从当前点稍微偏移开始
@@ -347,7 +371,6 @@ const Timeline = ({ points = [], streamStartTime, duration, className }) => {
                     })}
                 </div>
                 
-                {/* Time scale - Show actual time range */}
                 <div className="flex justify-between text-xs text-gray-400 mt-2">
                     <span>
                         {sortedPoints.length > 0 ? formatTime(sortedPoints[0].time) : '开始'}
