@@ -6,7 +6,7 @@ import SchedulePage from '../pages/SchedulePage';
 import RecordPage from '../pages/RecordPage';
 
 import HomeTwoToneIcon from '@mui/icons-material/HomeTwoTone';
-import AnnouncementTwoToneIcon from '@mui/icons-material/AnnouncementTwoTone';
+import ShareTwoToneIcon from '@mui/icons-material/ShareTwoTone';
 import PollTwoToneIcon from '@mui/icons-material/PollTwoTone';
 import CalendarMonthTwoToneIcon from '@mui/icons-material/CalendarMonthTwoTone';
 import VideocamTwoToneIcon from '@mui/icons-material/VideocamTwoTone';
@@ -23,7 +23,7 @@ const publicRoutes = [
         path: '/blog',
         element: BlogPage,
         label: '动态',
-        icon: AnnouncementTwoToneIcon
+        icon: ShareTwoToneIcon
     },
     {
         path: '/schedule',

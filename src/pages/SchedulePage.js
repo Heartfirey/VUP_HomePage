@@ -54,15 +54,15 @@ const AboutPage = () => {
                             <span className="truncate">前往空间</span>
                         </button>
 
-                        {/* Subscribe calendar button - Reserved position, waiting for backend implementation */}
+                        {/* Subscribe calendar button */}
                         <button
-                            className="flex items-center justify-center px-3 md:px-4 py-2 bg-gray-500/20 
-                                     border border-gray-400/30 
-                                     rounded-lg cursor-not-allowed opacity-50
-                                     text-gray-300 text-xs md:text-sm font-medium
+                            onClick={() => window.open(`/api/calendar/subscribe`, '_blank')}
+                            className="flex items-center justify-center px-3 md:px-4 py-2 bg-blue-500/20 hover:bg-blue-500/30 
+                                     border border-blue-400/30 hover:border-blue-400/50 
+                                     rounded-lg transition-all duration-200 
+                                     text-blue-100 hover:text-white text-xs md:text-sm font-medium
                                      min-w-0 flex-shrink-0"
-                            title="日历订阅功能开发中..."
-                            disabled
+                            title="订阅日历 - 在您的日历应用中自动同步直播计划"
                         >
                             <svg 
                                 className="w-3 md:w-4 h-3 md:h-4 mr-1 md:mr-2 flex-shrink-0" 
