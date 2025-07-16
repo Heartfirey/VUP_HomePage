@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import clsx from 'clsx';
 import dayjs from 'dayjs';
-import config from '../../config';
+import { useLiveTypes } from '../../hooks/useLiveTypes';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import BedtimeIcon from '@mui/icons-material/Bedtime';
 import RadioButtonUncheckedIcon from '@mui/icons-material/RadioButtonUnchecked';
@@ -10,6 +10,9 @@ import RadioButtonUncheckedIcon from '@mui/icons-material/RadioButtonUnchecked';
 const ScheduleCell = ({ events, isToday, maxEventsInWeek = 1 }) => {
     const [isExpanded, setIsExpanded] = useState(false);
     const [isMobile, setIsMobile] = useState(false);
+    
+    // 使用live types hook
+    const { getTypeColors, getTypeName } = useLiveTypes();
     
     // 检测移动端
     useEffect(() => {
@@ -42,12 +45,11 @@ const ScheduleCell = ({ events, isToday, maxEventsInWeek = 1 }) => {
     const dateString = displayEvents[0]?.date;
     const formattedDate = dateString ? dayjs(dateString).format('MM/DD') : '';
     const dayOfWeek = dateString ? dayjs(dateString).format('ddd') : '';
-    
-    const colorMapTable = config.scheduleStyle.eventTypeColorMap;
-    const textEventMap = config.scheduleStyle.eventMap;
 
-    // 计算卡片的最小高度，基于一周内最多事件数
-    const minHeight = Math.max(120, 80 + maxEventsInWeek * 50);
+    // 计算卡片的最小高度，基于一周内最多事件数 - 响应式优化
+    const minHeight = isMobile ? 
+        Math.max(100, 60 + maxEventsInWeek * 35) :  // 手机端更紧凑
+        Math.max(120, 80 + maxEventsInWeek * 50);   // 桌面端原逻辑
 
     // 检查事件是否已过期
     const isEventPast = (eventDate) => {
@@ -66,12 +68,20 @@ const ScheduleCell = ({ events, isToday, maxEventsInWeek = 1 }) => {
             duration: 6
         });
         
+        // 使用API获取颜色
+        const eventColors = getTypeColors(event.type);
+        
+        // 处理API数据不存在的情况 - 定义统一的fallback值
+        const FALLBACK_BG_COLOR = 'rgba(156, 163, 175, 0.1)';
+        const FALLBACK_FG_COLOR = 'rgb(156, 163, 175)';
+        
         const eventBgColor = event.title ? 
-            (colorMapTable[event.type]?.[0] || 'rgba(156, 163, 175, 0.2)') : 
-            'rgba(128, 128, 128, 0.1)';
+            (eventColors ? eventColors[0] : FALLBACK_BG_COLOR) : 
+            FALLBACK_BG_COLOR;
         const eventFgColor = event.title ? 
-            (colorMapTable[event.type]?.[1] || 'rgb(156, 163, 175)') : 
-            'rgb(156, 163, 175)';
+            (eventColors ? eventColors[1] : FALLBACK_FG_COLOR) : 
+            FALLBACK_FG_COLOR;
+            
         const eventTime = event.date ? dayjs(event.date).format('HH:mm') : '';
         const isPast = isEventPast(event.date);
         const title = event.title || '休息';
@@ -135,7 +145,7 @@ const ScheduleCell = ({ events, isToday, maxEventsInWeek = 1 }) => {
                                 color: eventFgColor
                             }}
                         >
-                            {textEventMap[event.type] || event.type}
+                            {getTypeName(event.type)}
                         </span>
                     </div>
                     
@@ -202,39 +212,39 @@ const ScheduleCell = ({ events, isToday, maxEventsInWeek = 1 }) => {
             style={!isRestDay ? { minHeight: `${minHeight}px` } : {}}
             onClick={() => showExpandButton && setIsExpanded(!isExpanded)}
         >
-            {/* 日期标题区域 - 移动端优化 */}
-            <div className="px-3 md:px-4 pt-2 md:pt-3 pb-1.5 md:pb-2 border-b border-white/10">
-                <div className="flex justify-between items-center">
+            {/* 日期标题区域 - 电脑端紧凑，手机端宽松 */}
+            <div className="px-2 md:px-3 pt-2 md:pt-2 pb-1 md:pb-1.5 border-b border-white/10">
+                <div className="flex justify-between items-center min-w-0">
                     {/* 左侧：日期 */}
                     <div className={clsx(
-                        'text-base md:text-lg font-bold',
+                        'text-sm md:text-base font-bold flex-shrink-0',
                         isToday ? 'text-pink-200' : 'text-white'
                     )}>
                         {formattedDate}
                     </div>
                     
                     {/* 右侧：星期和今日标识 */}
-                    <div className="flex items-center space-x-1.5 md:space-x-2">
+                    <div className="flex items-center space-x-2 md:space-x-1 min-w-0 flex-shrink-0">
                         <div className={clsx(
-                            'text-xs md:text-sm font-medium',
+                            'text-xs md:text-xs font-medium whitespace-nowrap',
                             isToday ? 'text-pink-300/80' : 'text-gray-400'
                         )}>
                             {dayOfWeek}
                         </div>
                         {isToday && (
-                            <div className="flex items-center space-x-0.5 md:space-x-1">
-                                <div className="w-1.5 md:w-2 h-1.5 md:h-2 bg-pink-400 rounded-full animate-pulse" />
-                                <span className="text-xs text-pink-300 font-medium">今日</span>
+                            <div className="flex items-center space-x-1.5 md:space-x-0.5 flex-shrink-0">
+                                <div className="w-2 md:w-1.5 h-2 md:h-1.5 bg-pink-400 rounded-full animate-pulse flex-shrink-0" />
+                                <span className="text-xs md:text-xs text-pink-300 font-medium whitespace-nowrap">今日</span>
                             </div>
                         )}
                     </div>
                 </div>
             </div>
 
-            {/* 事件列表区域 - 移动端优化 */}
+            {/* 事件列表区域 - 响应式padding优化 */}
             <div className="flex-1 flex flex-col p-2 md:p-3">
                 {isRestDay ? (
-                    <div className="flex-1 flex items-center justify-center py-0.5 md:py-2">
+                    <div className="flex-1 flex items-center justify-center py-1 md:py-2">
                         <div className="text-center">
                             <BedtimeIcon 
                                 sx={{ 
@@ -247,7 +257,7 @@ const ScheduleCell = ({ events, isToday, maxEventsInWeek = 1 }) => {
                         </div>
                     </div>
                 ) : (
-                    <div className="flex-1 flex flex-col space-y-1.5 md:space-y-2">
+                    <div className="flex-1 flex flex-col space-y-1 md:space-y-2">
                         {visibleEvents.map((event, index) => (
                             <EventItem 
                                 key={`${event.date}-${event.type}-${index}`}

@@ -61,7 +61,11 @@ const RecordCard = ({ record, className }) => {
                 <div className="flex flex-col md:flex-row md:items-start md:justify-between space-y-3 md:space-y-0">
                     <div className="flex-1 md:pr-6">
                         <div className="mb-2">
-                            <StreamTypeBadge title={record.title} className="text-xl md:text-2xl leading-tight" />
+                            <StreamTypeBadge 
+                                title={record.title} 
+                                type={record.type} 
+                                className="text-xl md:text-2xl leading-tight" 
+                            />
                         </div>
                         
                         {/* Metadata */}

@@ -41,25 +41,12 @@ export default {
         updateInterval: 1000,
     },
     scheduleStyle: {
-        eventTypeColorMap: {
-            rest: ['rgba(200,200,200,0.5)', 'rgba(200,200,200,1)'],
-            radio: ['rgba(118, 255, 3, 0.3)', 'rgba(118, 255, 3,1)'],
-            watch: ['rgba(101, 31, 255, 0.2)', 'rgb(234, 128, 252)'],
-            sub: ['rgba(0, 230, 118, 0.3)', 'rgba(0, 230, 118)'],
-            game: ['rgb(41, 121, 255, 0.3)', 'rgb(24, 255, 255)'],
-            collab: ['rgba(255, 61, 0, 0.3)', 'rgb(255, 109, 0)'],
-            sing: ['rgb(255, 23, 68, 0.3)', 'rgb(255, 138, 128)'],
-            default: ['rgba(255, 193, 7, 0.3)', 'rgb(255, 235, 59)']
-        },
-        eventMap: {
-            rest: '休息',
-            radio: '电台',
-            watch: '观影',
-            sub: '翻译',
-            game: '游戏',
-            collab: '合作',
-            sing: '歌回',   
-        },
+       rowPerPage: 10
+    },
+    // Recording page configuration
+    recordStyle: {
+        
+        rowPerPage: 10
     },
     api: {
         backendAPIUrl: 'https://rins.top/api',

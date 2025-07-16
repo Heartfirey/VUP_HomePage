@@ -1,47 +1,65 @@
 // src/components/LiveRecord/StreamTypeBadge.js
 import React from 'react';
-import config from '../../config';
+import { useLiveTypes } from '../../hooks/useLiveTypes';
 
-const StreamTypeBadge = ({ title, className = '' }) => {
-    // 从标题中提取直播类型
-    const extractStreamType = (title) => {
-        const match = title.match(/【(.+?)】/);
-        return match ? match[1] : '直播';
-    };
+const StreamTypeBadge = ({ title, type, className = '' }) => {
+    // 使用live types hook
+    const { liveTypes, getTypeColors, getTypeName, loading: liveTypesLoading } = useLiveTypes();
     
-    // 获取纯净的标题（去除类型标记）
+    // 获取纯净的标题（去除可能存在的类型标记）
     const getCleanTitle = (title) => {
         return title.replace(/【.+?】/, '').trim();
     };
-    
-    // 映射中文类型到英文key
-    const mapTypeToKey = (chineseType) => {
-        const typeMap = {
-            '歌回': 'sing',
-            '游戏': 'game', 
-            '闲聊': 'default', // 闲聊归类为默认直播类型
-            '观影': 'watch',
-            '翻译': 'sub',
-            '电台': 'radio',
-            '合作': 'collab',
-            '休息': 'rest',
-            '直播': 'default'
-        };
-        return typeMap[chineseType] || 'default';
-    };
-    
-    const streamType = extractStreamType(title);
+
     const cleanTitle = getCleanTitle(title);
-    const typeKey = mapTypeToKey(streamType);
     
-    // 使用Schedule页面的配置
-    const scheduleConfig = config.scheduleStyle.eventTypeColorMap[typeKey] || 
-                          config.scheduleStyle.eventTypeColorMap['default'];
+    // 如果正在加载，显示基础样式
+    if (liveTypesLoading) {
+        return (
+            <div className={`flex items-center gap-3 ${className}`}>
+                <span className="px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap text-gray-500 border border-gray-300">
+                    加载中...
+                </span>
+                <span className="text-gray-700 truncate">
+                    {cleanTitle}
+                </span>
+            </div>
+        );
+    }
+
+    // 如果没有type或找不到对应的类型数据，显示基础样式
+    if (!type || !liveTypes[type]) {
+        return (
+            <div className={`flex items-center gap-3 ${className}`}>
+                <span className="px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap text-gray-500 border border-gray-300">
+                    {type || '未知类型'}
+                </span>
+                <span className="text-gray-700 truncate">
+                    {cleanTitle}
+                </span>
+            </div>
+        );
+    }
+
+    // 使用API获取颜色
+    const colors = getTypeColors(type);
     
-    // Schedule配置格式: [backgroundColor, textColor]
-    // 对于Badge，我们需要降低背景透明度
-    const backgroundColor = scheduleConfig[0].replace(/0\.\d+/, '0.2');
-    const textColor = scheduleConfig[1];
+    // 如果API数据不存在，使用基础样式
+    if (!colors) {
+        return (
+            <div className={`flex items-center gap-3 ${className}`}>
+                <span className="px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap text-gray-500 border border-gray-300">
+                    {getTypeName(type)}
+                </span>
+                <span className="text-gray-700 truncate">
+                    {cleanTitle}
+                </span>
+            </div>
+        );
+    }
+    
+    const backgroundColor = colors[0].replace(/0\.\d+/, '0.2'); // 降低透明度
+    const textColor = colors[1];
     
     return (
         <div className={`flex items-center gap-3 ${className}`}>
@@ -54,7 +72,7 @@ const StreamTypeBadge = ({ title, className = '' }) => {
                     boxShadow: `0 0 8px ${backgroundColor}`
                 }}
             >
-                {streamType}
+                {getTypeName(type)}
             </span>
             <span className="text-white font-bold flex-1 min-w-0 truncate">
                 {cleanTitle}
