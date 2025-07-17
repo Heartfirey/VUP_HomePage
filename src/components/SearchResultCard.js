@@ -73,10 +73,28 @@ const getSCStyle = (scValue) => {
 };
 const SearchResultCard = () => {
     const dispatch = useDispatch();
-    const { persistentMode, persistentKeyword, pageNum, pageSize, songs, loading } = useSelector(state => state.song);
+    const { persistentMode, persistentKeyword, pageNum, pageSize, songs, loading, hasMore } = useSelector(state => state.song);
     const copyRef = useRef();
     const observer = useRef();
     const [previousSongsCount, setPreviousSongsCount] = useState(0);
+    
+    // 性能检测：减少动画在低端设备上的影响
+    const [enableAnimations, setEnableAnimations] = useState(true);
+    
+    useEffect(() => {
+        // 简单的性能检测
+        const checkPerformance = () => {
+            // 检测设备是否支持高性能动画
+            if (navigator.hardwareConcurrency && navigator.hardwareConcurrency < 4) {
+                setEnableAnimations(false);
+            }
+            // 检测是否是移动设备（通常性能较低）
+            if (/Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
+                setEnableAnimations(false);
+            }
+        };
+        checkPerformance();
+    }, []);
 
     useEffect(() => {
         if (!persistentKeyword) {
@@ -91,15 +109,13 @@ const SearchResultCard = () => {
         if (pageNum === 1) {
             // 新搜索，重置计数，让所有卡片都播放动画
             setPreviousSongsCount(0);
+        } else {
+            // 非第一页加载时，立即更新之前的歌曲数量，避免闪烁
+            if (!loading && songs.length > previousSongsCount) {
+                setPreviousSongsCount(songs.length);
+            }
         }
-    }, [pageNum, persistentKeyword]); // 添加persistentKeyword依赖，确保新搜索时重置
-
-    useEffect(() => {
-        // 当歌曲加载完成且不是loading状态时，更新之前的歌曲数量
-        if (!loading && songs.length > previousSongsCount) {
-            setPreviousSongsCount(songs.length);
-        }
-    }, [loading, songs.length, previousSongsCount]);
+    }, [pageNum, persistentKeyword, loading, songs.length, previousSongsCount]);
 
     // 清理observer
     useEffect(() => {
@@ -110,12 +126,13 @@ const SearchResultCard = () => {
         };
     }, []);
 
-    // 无限滚动 - 最简化逻辑
+    // 无限滚动 - 改进逻辑，防止重复加载
     const lastSongElementRef = useCallback(node => {
         if (observer.current) observer.current.disconnect();
         
         observer.current = new IntersectionObserver(entries => {
-            if (entries[0].isIntersecting && !loading && songs.length >= pageSize) {
+            // 只有在不加载中、还有更多数据、且歌曲数量大于等于pageSize时才触发加载
+            if (entries[0].isIntersecting && !loading && hasMore && songs.length >= pageSize) {
                 // 根据当前的搜索模式选择正确的key
                 let searchKey = persistentMode;
                 if (persistentMode === "songType") {
@@ -139,7 +156,7 @@ const SearchResultCard = () => {
         });
         
         if (node) observer.current.observe(node);
-    }, [loading, dispatch, persistentMode, persistentKeyword, pageNum, pageSize, songs.length]);
+    }, [loading, dispatch, persistentMode, persistentKeyword, pageNum, pageSize, songs.length, hasMore]);
 
     const handleCardClick = (songName) => {
         if (copyRef.current) {
@@ -153,28 +170,39 @@ const SearchResultCard = () => {
         const scStyle = getSCStyle(song.remarks);
         
         // 判断是否是新加载的卡片（只对新卡片播放动画）
-        const isNewCard = index >= previousSongsCount;
-        const newCardIndex = isNewCard ? index - previousSongsCount : 0;
+        const isNewCard = pageNum === 1 ? true : index >= previousSongsCount;
+        const newCardIndex = isNewCard && pageNum > 1 ? index - previousSongsCount : 0;
         
-        // 如果是第一页，所有卡片都算新卡片，使用原始索引
+        // 动画索引：第一页使用原始索引，后续页使用相对索引
         const animationIndex = pageNum === 1 ? index : newCardIndex;
+        
+        // 性能优化：限制同时播放动画的数量，避免卡顿
+        const shouldAnimate = enableAnimations && isNewCard && (
+            pageNum === 1 ? index < 16 : newCardIndex < 12 // 首页前16个，后续页前12个
+        );
 
         const cardProps = isLast ? { ref: lastSongElementRef } : {};
 
-        // 动画配置：新卡片有滑入动画，旧卡片无动画
-        const animationProps = isNewCard || pageNum === 1 ? {
-            initial: { opacity: 0, y: 30, scale: 0.95 },
+        // 动画配置：优化性能的轻量动画
+        const animationProps = shouldAnimate ? {
+            initial: { opacity: 0, y: 15, scale: 0.99 },
             animate: { opacity: 1, y: 0, scale: 1 },
-            exit: { opacity: 0, y: -20, scale: 0.95 },
+            exit: { opacity: 0, y: -8, scale: 0.99 },
             transition: { 
-                duration: 0.4, 
-                delay: animationIndex * 0.03,
-                ease: "easeOut"
+                duration: 0.2, // 进一步减少动画时长
+                delay: Math.min(animationIndex * 0.015, 0.3), // 限制最大延迟
+                ease: [0.25, 0.1, 0.25, 1], // 更流畅的缓动
+                type: "tween"
             }
+        } : isNewCard && enableAnimations ? {
+            // 对于超出限制的新卡片，使用简单的淡入
+            initial: { opacity: 0 },
+            animate: { opacity: 1 },
+            transition: { duration: 0.1, ease: "easeOut" }
         } : {
-            initial: false, // 禁用初始动画
+            initial: false, // 禁用初始动画或低性能设备
             animate: { opacity: 1, y: 0, scale: 1 },
-            transition: { duration: 0 } // 无过渡动画
+            transition: { duration: 0 }
         };
 
         return (
@@ -182,10 +210,11 @@ const SearchResultCard = () => {
                 {...cardProps}
                 {...animationProps}
                 whileHover={{ 
-                    y: -2,
-                    transition: { duration: 0.2 }
+                    y: -1, // 减少hover移动距离
+                    transition: { duration: 0.15, ease: "easeOut" }
                 }}
-                whileTap={{ scale: 0.98 }}
+                whileTap={{ scale: 0.99, transition: { duration: 0.1 } }}
+                style={{ willChange: shouldAnimate ? 'transform, opacity' : 'auto' }} // 性能提示
             >
                 <Card
                     onClick={() => handleCardClick(song.songName)}
@@ -624,32 +653,118 @@ const SearchResultCard = () => {
                     </Fade>
                 )}
 
-                {loading && (
-                    <Box 
-                        sx={{
-                            display: 'flex', 
-                            justifyContent: 'center', 
-                            alignItems: 'center',
-                            py: 4
-                        }}
-                    >
-                        <CircularProgress 
-                            size={32} 
-                            sx={{ 
-                                color: '#2196F3'
-                            }} 
-                        />
-                        <Typography 
-                            variant="body2" 
-                            sx={{ 
-                                ml: 2, 
-                                color: '#757575',
-                                fontWeight: 500
-                            }}
-                        >
-                            加载中...
-                        </Typography>
-                    </Box>
+                {/* 加载状态和完成状态 */}
+                {songs.length > 0 && (
+                    <>
+                        {loading && (
+                            <Box 
+                                sx={{
+                                    mt: 3,
+                                    background: 'rgba(255, 255, 255, 0.95)',
+                                    borderRadius: '16px',
+                                    border: '1px solid rgba(33, 150, 243, 0.2)',
+                                    boxShadow: '0 6px 24px rgba(33, 150, 243, 0.06)',
+                                    py: 2.5,
+                                    px: 3,
+                                    minHeight: '64px'
+                                }}
+                            >
+                                <Box 
+                                    sx={{
+                                        display: 'flex', 
+                                        justifyContent: 'center', 
+                                        alignItems: 'center'
+                                    }}
+                                >
+                                    <CircularProgress 
+                                        size={24} 
+                                        sx={{ 
+                                            color: '#2196F3'
+                                        }} 
+                                    />
+                                    <Typography 
+                                        variant="body2" 
+                                        sx={{ 
+                                            ml: 2, 
+                                            color: '#757575',
+                                            fontWeight: 500,
+                                            fontSize: '0.875rem'
+                                        }}
+                                    >
+                                        正在加载更多歌曲...
+                                    </Typography>
+                                </Box>
+                            </Box>
+                        )}
+
+                        {!loading && !hasMore && (
+                            <Fade in={true}>
+                                <Box 
+                                    sx={{
+                                        mt: 3,
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        gap: 2,
+                                        py: 2.5,
+                                        px: 3,
+                                        background: 'rgba(255, 255, 255, 0.95)',
+                                        borderRadius: '16px',
+                                        border: '1px solid rgba(76, 175, 80, 0.2)',
+                                        boxShadow: '0 6px 24px rgba(76, 175, 80, 0.1)',
+                                        height: 'auto',
+                                        minHeight: '64px'
+                                    }}
+                                >
+                                    <Box
+                                        sx={{
+                                            backgroundColor: 'rgba(76, 175, 80, 0.1)',
+                                            borderRadius: '50%',
+                                            width: 40,
+                                            height: 40,
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            border: '2px solid rgba(76, 175, 80, 0.2)',
+                                            flexShrink: 0
+                                        }}
+                                    >
+                                        <MusicNoteIcon 
+                                            sx={{ 
+                                                fontSize: 20, 
+                                                color: '#4CAF50'
+                                            }} 
+                                        />
+                                    </Box>
+                                    <Box sx={{ textAlign: 'left' }}>
+                                        <Typography 
+                                            variant="subtitle1" 
+                                            sx={{ 
+                                                fontWeight: 600,
+                                                color: '#2E7D32',
+                                                fontSize: '1rem',
+                                                lineHeight: 1.2,
+                                                mb: 0.5
+                                            }}
+                                        >
+                                            已加载全部歌曲
+                                        </Typography>
+                                        <Typography 
+                                            variant="body2" 
+                                            sx={{ 
+                                                color: '#4CAF50',
+                                                fontWeight: 500,
+                                                fontSize: '0.8rem',
+                                                lineHeight: 1.2
+                                            }}
+                                        >
+                                            共 {songs.length} 首歌曲
+                                        </Typography>
+                                    </Box>
+                                </Box>
+                            </Fade>
+                        )}
+                    </>
                 )}
             </Box>
             <CopyToClipboardSnackbar ref={copyRef} />

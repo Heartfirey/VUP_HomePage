@@ -167,6 +167,9 @@ const SearchCard = React.memo(() => {
     const handleCategoryClick = useCallback((keyword, reqKey) => {
         const badgeKey = `${reqKey}-${keyword}`;
         
+        // 重置SC按钮状态，因为选择了其他筛选条件
+        setIsSuperSong(false);
+        
         // 单选模式：如果点击已选中的badge，则取消选择；否则只选择当前badge
         setSelectedBadges(prev => {
             const newSet = new Set();
@@ -703,8 +706,9 @@ const SearchCard = React.memo(() => {
                                                 if (action.action) {
                                                     handleQuickAction(action.action);
                                                 } else {
-                                                    // 全部歌曲按钮：重置badge选中状态
+                                                    // 全部歌曲按钮：重置badge选中状态和SC按钮状态
                                                     setSelectedBadges(new Set());
+                                                    setIsSuperSong(false); // 重置SC按钮状态
                                                     handleCategoryClick(action.keyword, action.reqKey);
                                                 }
                                             }}

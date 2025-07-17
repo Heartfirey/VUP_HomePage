@@ -45,6 +45,7 @@ const songSlice = createSlice({
         pageNum: 1,
         pageSize: 20,
         loading: false,
+        hasMore: true,
         error: null,
     },
     reducers: {
@@ -57,6 +58,7 @@ const songSlice = createSlice({
             state.pageNum = 1;
             state.songs = [];
             state.candidateSuggestions = [];
+            state.hasMore = true;
         },
         setPageSize(state, action) {
             state.pageSize = action.payload;
@@ -67,6 +69,7 @@ const songSlice = createSlice({
         resetSongs(state) {
             state.songs = [];
             state.pageNum = 1;
+            state.hasMore = true;
         }
     },
     extraReducers: (builder) => {
@@ -78,11 +81,16 @@ const songSlice = createSlice({
             .addCase(fetchSongsByKeyValue.fulfilled, (state, action) => {
                 state.loading = false;
                 state.pageNum = action.payload.pageNum;
+                const newSongs = action.payload.songs;
+                
                 if (action.payload.pageNum === 1) {
-                    state.songs = action.payload.songs;
+                    state.songs = newSongs;
                 } else {
-                    state.songs = [...state.songs, ...action.payload.songs];
+                    state.songs = [...state.songs, ...newSongs];
                 }
+                
+                // 判断是否还有更多数据：如果返回的数据量少于pageSize，说明没有更多数据了
+                state.hasMore = newSongs.length >= state.pageSize;
             })
             .addCase(fetchSongsByKeyValue.rejected, (state, action) => {
                 state.loading = false;
