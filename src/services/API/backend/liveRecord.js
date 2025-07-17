@@ -120,12 +120,11 @@ export const liveRecordAPI = {
     },
 
     // 搜索直播事件（跨周搜索）
-    async searchLiveEvents(keyword, weekOffset = 0, limit = 10) {
+    async searchLiveEvents(keyword, limit = 20) {
         try {
             const response = await apiClient.get('/live-records/search', {
                 params: {
                     keyword,
-                    week_offset: weekOffset,
                     limit
                 }
             });

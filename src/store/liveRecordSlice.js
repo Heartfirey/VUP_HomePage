@@ -89,7 +89,7 @@ export const searchRecords = createAsyncThunk(
     'liveRecord/search',
     async (keyword, { rejectWithValue }) => {
         try {
-            const response = await liveRecordAPI.searchLiveEvents(keyword, 0, 20);
+            const response = await liveRecordAPI.searchLiveEvents(keyword, 20);
             return {
                 records: response.data.events,
                 keyword,
