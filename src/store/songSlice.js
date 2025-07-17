@@ -74,6 +74,7 @@ const songSlice = createSlice({
             })
             .addCase(fetchSongsByKeyValue.fulfilled, (state, action) => {
                 state.loading = false;
+                state.pageNum = action.payload.pageNum;
                 if (action.payload.pageNum === 1) {
                     state.songs = action.payload.songs;
                 } else {
