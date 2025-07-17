@@ -58,6 +58,9 @@ const songSlice = createSlice({
             state.songs = [];
             state.candidateSuggestions = [];
         },
+        setPageSize(state, action) {
+            state.pageSize = action.payload;
+        },
         incrementPage(state) {
             state.pageNum += 1;
         },
@@ -101,5 +104,5 @@ const songSlice = createSlice({
     }
 });
 
-export const { setSearchQuery, setPersistentSearch, incrementPage, resetSongs } = songSlice.actions;
+export const { setSearchQuery, setPersistentSearch, setPageSize, incrementPage, resetSongs } = songSlice.actions;
 export default songSlice.reducer;

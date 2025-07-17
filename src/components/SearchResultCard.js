@@ -17,6 +17,7 @@ import CopyToClipboardSnackbar from '../services/copyUtils';
 
 // 导入背景图片
 import PhoneCardBG from '../assets/PhoneCardBG.png';
+import MdCardBG from '../assets/MdCardBG.png';
 
 // Icons
 import MusicNoteIcon from '@mui/icons-material/MusicNote';
@@ -42,7 +43,7 @@ const scColorMapping = {
 // 分类图标映射
 const getCategoryIcon = (songType) => {
     const iconMap = {
-        '国风': PaletteIcon,
+        '古风': PaletteIcon,
         '流行': TrendingUpIcon,
         '民谣': NatureIcon,
         '原创': CreateIcon,
@@ -252,17 +253,30 @@ const SearchResultCard = () => {
                             pb: '16px !important'
                         }
                     }}>
-                        {/* 装饰性背景 - 仅在手机端显示 */}
+                        {/* 装饰性背景 - 手机端和桌面端 */}
                         <Box
                             sx={{
                                 position: 'absolute',
                                 bottom: -8,
-                                right: -8,
-                                width: { xs: hasSC ? 140 : 120, sm: 0 }, // SC卡片背景更宽，避免截断
-                                height: { xs: hasSC ? '75%' : '95%', sm: 0 }, // SC卡片高度80%，普通卡片95%
-                                opacity: 0.8,
+                                right: -4,
+                                width: { 
+                                    xs: hasSC ? 140 : 120, // 手机端：SC卡片背景更宽，避免截断
+                                    sm: hasSC ? 160 : 140  // 桌面端：相应增大
+                                }, 
+                                height: { 
+                                    xs: hasSC ? '75%' : '95%', // 手机端：SC卡片高度75%，普通卡片95%
+                                    sm: hasSC ? '60%' : '75%'  // 桌面端：保持相同比例
+                                }, 
+                                opacity: {
+                                    xs: 0.8,
+                                    sm: 0.8
+                                },
                                 zIndex: 0,
-                                backgroundImage: { xs: `url(${PhoneCardBG})`, sm: 'none' },
+                                backgroundImage: { 
+                                    xs: `url(${PhoneCardBG})`, // 手机端使用PhoneCardBG
+                                    // sm: `url(${MdCardBG})`
+                                    sm: 'none' // 临时注释掉桌面端背景
+                                },
                                 backgroundSize: 'auto 100%', // 按高度缩放，保持宽高比
                                 backgroundPosition: 'bottom right',
                                 backgroundRepeat: 'no-repeat',
@@ -439,25 +453,25 @@ const SearchResultCard = () => {
                                 const IconComponent = getCategoryIcon(song.songType);
                                 return (
                                     <Chip
-                                        icon={<IconComponent sx={{ fontSize: '12px !important', color: '#ffffff' }} />}
+                                        icon={<IconComponent sx={{ fontSize: '12px !important', color: '#2196F3' }} />}
                                         label={song.songType}
                                         size="small"
                                         sx={{
-                                            background: 'linear-gradient(135deg, #2196F3, #42A5F5)',
-                                            color: '#ffffff',
+                                            background: 'rgba(33, 150, 243, 0.1)',
+                                            color: '#2196F3',
                                             fontWeight: 600,
                                             fontSize: '0.7rem',
                                             height: '24px',
                                             borderRadius: '12px',
-                                            border: 'none',
+                                            border: '1px solid rgba(33, 150, 243, 0.3)',
                                             transition: 'all 0.2s ease',
-                                            boxShadow: '0 2px 8px rgba(33, 150, 243, 0.3)',
+                                            boxShadow: 'none',
                                             minWidth: '40px',
                                             flex: '0 0 auto',
                                             '& .MuiChip-icon': {
                                                 marginLeft: '8px',
                                                 marginRight: '0px',
-                                                color: '#ffffff'
+                                                color: '#2196F3'
                                             }
                                         }}
                                     />
@@ -469,25 +483,25 @@ const SearchResultCard = () => {
                                 const IconComponent = getLanguageIcon(song.language);
                                 return (
                                     <Chip
-                                        icon={<IconComponent sx={{ fontSize: '12px !important', color: '#ffffff' }} />}
+                                        icon={<IconComponent sx={{ fontSize: '12px !important', color: '#9C27B0' }} />}
                                         label={song.language}
                                         size="small"
                                         sx={{
-                                            background: 'linear-gradient(135deg, #9C27B0, #BA68C8)',
-                                            color: '#ffffff',
+                                            background: 'rgba(156, 39, 176, 0.1)',
+                                            color: '#9C27B0',
                                             fontWeight: 600,
                                             fontSize: '0.7rem',
                                             height: '24px',
                                             borderRadius: '12px',
-                                            border: 'none',
+                                            border: '1px solid rgba(156, 39, 176, 0.3)',
                                             transition: 'all 0.2s ease',
-                                            boxShadow: '0 2px 8px rgba(156, 39, 176, 0.3)',
+                                            boxShadow: 'none',
                                             minWidth: '40px',
                                             flex: '0 0 auto',
                                             '& .MuiChip-icon': {
                                                 marginLeft: '8px',
                                                 marginRight: '0px',
-                                                color: '#ffffff'
+                                                color: '#9C27B0'
                                             }
                                         }}
                                     />
@@ -553,15 +567,57 @@ const SearchResultCard = () => {
                         <Box 
                             sx={{
                                 textAlign: 'center',
-                                py: 8,
-                                color: '#9e9e9e'
+                                py: 6,
+                                px: 4,
+                                background: 'rgba(255, 255, 255, 0.95)',
+                                borderRadius: '20px',
+                                border: '1px solid rgba(255, 255, 255, 0.3)',
+                                backdropFilter: 'blur(20px)',
+                                WebkitBackdropFilter: 'blur(20px)',
+                                boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)',
+                                mt: 4
                             }}
                         >
-                            <MusicNoteIcon sx={{ fontSize: 48, mb: 2, opacity: 0.5 }} />
-                            <Typography variant="h6" sx={{ fontWeight: 500 }}>
+                            <Box
+                                sx={{
+                                    backgroundColor: 'rgba(33, 150, 243, 0.1)',
+                                    borderRadius: '50%',
+                                    width: 80,
+                                    height: 80,
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    mx: 'auto',
+                                    mb: 3,
+                                    border: '2px solid rgba(33, 150, 243, 0.2)'
+                                }}
+                            >
+                                <MusicNoteIcon 
+                                    sx={{ 
+                                        fontSize: 40, 
+                                        color: '#2196F3',
+                                        opacity: 0.8
+                                    }} 
+                                />
+                            </Box>
+                            <Typography 
+                                variant="h5" 
+                                sx={{ 
+                                    fontWeight: 600,
+                                    color: '#1a1a1a',
+                                    mb: 1
+                                }}
+                            >
                                 暂无搜索结果
                             </Typography>
-                            <Typography variant="body2" sx={{ mt: 1 }}>
+                            <Typography 
+                                variant="body1" 
+                                sx={{ 
+                                    color: '#757575',
+                                    lineHeight: 1.6,
+                                    fontWeight: 400
+                                }}
+                            >
                                 试试其他关键词或分类筛选
                             </Typography>
                         </Box>

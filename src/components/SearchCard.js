@@ -22,6 +22,7 @@ import {
     fetchCandidatesByName,
     setSearchQuery,
     setPersistentSearch,
+    setPageSize,
     resetSongs
 } from '../store/songSlice';
 import CopyToClipboardSnackbar from '../services/copyUtils';
@@ -74,7 +75,7 @@ const categoryConfig = {
         { name: "韩语", keyword: "韩语", reqKey: "songType", icon: TranslateIcon }
     ],
     genres: [
-        { name: "国风", keyword: "国风", reqKey: "songType", icon: PaletteIcon },
+        { name: "古风", keyword: "古风", reqKey: "songType", icon: PaletteIcon },
         { name: "流行", keyword: "流行", reqKey: "songType", icon: TrendingUpIcon },
         { name: "民谣", keyword: "民谣", reqKey: "songType", icon: NatureIcon },
         { name: "原创", keyword: "原创", reqKey: "songType", icon: CreateIcon },
@@ -112,7 +113,10 @@ const SearchCard = React.memo(() => {
         };
 
         const handleResize = () => {
-            setDynamicPageSize(calculatePageSize());
+            const newPageSize = calculatePageSize();
+            setDynamicPageSize(newPageSize);
+            // 同步到Redux store
+            dispatch(setPageSize(newPageSize));
         };
 
         // 初始计算
@@ -142,7 +146,7 @@ const SearchCard = React.memo(() => {
                 clearTimeout(debouncedQuery.current);
             }
         };
-    }, [localQuery, dispatch, pageSize]);
+    }, [localQuery, dispatch, dynamicPageSize]);
 
     // 事件处理函数
     const handleSearchClick = useCallback(() => {
@@ -155,30 +159,36 @@ const SearchCard = React.memo(() => {
     const handleCandidateClick = useCallback((candidate) => {
         dispatch(setPersistentSearch({ mode: "id", keyword: candidate.id }));
         dispatch(resetSongs());
-        dispatch(fetchSongsByKeyValue({ key: 'id', value: candidate.id, pageNum: 1, pageSize }));
+        dispatch(fetchSongsByKeyValue({ key: 'id', value: candidate.id, pageNum: 1, pageSize: dynamicPageSize }));
         setOpenPopper(false);
         setLocalQuery(candidate.songName);
-    }, [dispatch, pageSize]);
+    }, [dispatch, dynamicPageSize]);
 
     const handleCategoryClick = useCallback((keyword, reqKey) => {
         const badgeKey = `${reqKey}-${keyword}`;
         
-        // 更新选中状态
+        // 单选模式：如果点击已选中的badge，则取消选择；否则只选择当前badge
         setSelectedBadges(prev => {
-            const newSet = new Set(prev);
-            if (newSet.has(badgeKey)) {
-                newSet.delete(badgeKey);
-            } else {
+            const newSet = new Set();
+            if (!prev.has(badgeKey)) {
                 newSet.add(badgeKey);
             }
+            // 如果点击已选中的badge，newSet保持为空，即取消所有选择
             return newSet;
         });
         
-        dispatch(setPersistentSearch({ mode: "songType", keyword: keyword }));
-        dispatch(resetSongs());
-        dispatch(fetchSongsByKeyValue({ key: reqKey, value: keyword, pageNum: 1, pageSize }));
+        // 如果是取消选择，则显示全部歌曲
+        if (selectedBadges.has(badgeKey)) {
+            dispatch(setPersistentSearch({ mode: "songType", keyword: "" }));
+            dispatch(resetSongs());
+            dispatch(fetchSongsByKeyValue({ key: 'songType', value: '', pageNum: 1, pageSize: dynamicPageSize }));
+        } else {
+            dispatch(setPersistentSearch({ mode: "songType", keyword: keyword }));
+            dispatch(resetSongs());
+            dispatch(fetchSongsByKeyValue({ key: reqKey, value: keyword, pageNum: 1, pageSize: dynamicPageSize }));
+        }
         setLocalQuery("");
-    }, [dispatch, pageSize]);
+    }, [dispatch, dynamicPageSize, selectedBadges]);
 
     const handleQuickAction = useCallback((action) => {
         if (action === 'random') {
@@ -189,19 +199,22 @@ const SearchCard = React.memo(() => {
                 }
             });
         } else if (action === 'super') {
+            // 重置badge选中状态
+            setSelectedBadges(new Set());
+            
             if (isSuperSong) {
                 dispatch(setPersistentSearch({ mode: 'songType', keyword: '' }));
                 dispatch(resetSongs());
-                dispatch(fetchSongsByKeyValue({ key: 'songType', value: '', pageNum: 1, pageSize: 10 }));
+                dispatch(fetchSongsByKeyValue({ key: 'songType', value: '', pageNum: 1, pageSize: dynamicPageSize }));
             } else {
                 dispatch(setPersistentSearch({ mode: 'isSuper', keyword: 1 }));
                 dispatch(resetSongs());
-                dispatch(fetchSongsByKeyValue({ key: 'isSuper', value: 1, pageNum: 1, pageSize: 10 }));
+                dispatch(fetchSongsByKeyValue({ key: 'isSuper', value: 1, pageNum: 1, pageSize: dynamicPageSize }));
             }
             setIsSuperSong(!isSuperSong);
             setLocalQuery("");
         }
-    }, [dispatch, isSuperSong]);
+    }, [dispatch, isSuperSong, dynamicPageSize]);
 
     const handleClearSearch = useCallback(() => {
         setLocalQuery("");
@@ -690,6 +703,8 @@ const SearchCard = React.memo(() => {
                                                 if (action.action) {
                                                     handleQuickAction(action.action);
                                                 } else {
+                                                    // 全部歌曲按钮：重置badge选中状态
+                                                    setSelectedBadges(new Set());
                                                     handleCategoryClick(action.keyword, action.reqKey);
                                                 }
                                             }}
