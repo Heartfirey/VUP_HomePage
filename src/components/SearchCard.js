@@ -20,6 +20,7 @@ import { RawBlurCardNoAnimate } from './RawBlurCard';
 import {
     fetchSongsByKeyValue,
     fetchCandidatesByName,
+    fetchSongsByBlur,
     setSearchQuery,
     setPersistentSearch,
     setPageSize,
@@ -97,7 +98,6 @@ const SearchCard = React.memo(() => {
     // 防抖搜索
     const debouncedQuery = useRef(null);
 
-    // 响应式计算每页数量
     useEffect(() => {
         const calculatePageSize = () => {
             const width = window.innerWidth;
@@ -115,7 +115,6 @@ const SearchCard = React.memo(() => {
         const handleResize = () => {
             const newPageSize = calculatePageSize();
             setDynamicPageSize(newPageSize);
-            // 同步到Redux store
             dispatch(setPageSize(newPageSize));
         };
 
@@ -133,10 +132,8 @@ const SearchCard = React.memo(() => {
             clearTimeout(debouncedQuery.current);
         }
         
-        // 延迟执行搜索
         debouncedQuery.current = setTimeout(() => {
             if (localQuery.trim()) {
-                dispatch(setSearchQuery(localQuery));
                 dispatch(fetchCandidatesByName({ localQuery, pageNum: 1, pageSize: dynamicPageSize }));
             }
         }, 300);
@@ -151,8 +148,20 @@ const SearchCard = React.memo(() => {
     // 事件处理函数
     const handleSearchClick = useCallback(() => {
         if (localQuery.trim() === "") return;
-        dispatch(setSearchQuery(localQuery));
-        dispatch(fetchCandidatesByName({ localQuery, pageNum: 1, pageSize: dynamicPageSize }));
+        
+        dispatch(setSearchQuery(localQuery.trim()));
+        dispatch(setPersistentSearch({ mode: "blur", keyword: localQuery.trim() }));
+        dispatch(resetSongs());
+        
+        dispatch(fetchSongsByBlur({ 
+            keyword: localQuery.trim(), 
+            pageNum: 1, 
+            pageSize: dynamicPageSize 
+        }));
+        
+        // 重置其他状态
+        setSelectedBadges(new Set());
+        setIsSuperSong(false);
         setOpenPopper(false);
     }, [localQuery, dispatch, dynamicPageSize]);
 
@@ -167,20 +176,16 @@ const SearchCard = React.memo(() => {
     const handleCategoryClick = useCallback((keyword, reqKey) => {
         const badgeKey = `${reqKey}-${keyword}`;
         
-        // 重置SC按钮状态，因为选择了其他筛选条件
         setIsSuperSong(false);
         
-        // 单选模式：如果点击已选中的badge，则取消选择；否则只选择当前badge
         setSelectedBadges(prev => {
             const newSet = new Set();
             if (!prev.has(badgeKey)) {
                 newSet.add(badgeKey);
             }
-            // 如果点击已选中的badge，newSet保持为空，即取消所有选择
             return newSet;
         });
         
-        // 如果是取消选择，则显示全部歌曲
         if (selectedBadges.has(badgeKey)) {
             dispatch(setPersistentSearch({ mode: "songType", keyword: "" }));
             dispatch(resetSongs());
@@ -222,7 +227,16 @@ const SearchCard = React.memo(() => {
     const handleClearSearch = useCallback(() => {
         setLocalQuery("");
         setOpenPopper(false);
-    }, []);
+        
+        // 清除搜索内容时，恢复显示全部歌曲
+        dispatch(setPersistentSearch({ mode: "songType", keyword: "" }));
+        dispatch(resetSongs());
+        dispatch(fetchSongsByKeyValue({ key: 'songType', value: '', pageNum: 1, pageSize: dynamicPageSize }));
+        
+        // 重置其他状态
+        setSelectedBadges(new Set());
+        setIsSuperSong(false);
+    }, [dispatch, dynamicPageSize]);
 
     const handleKeyPress = useCallback((e) => {
         if (e.key === 'Enter') {
@@ -293,30 +307,55 @@ const SearchCard = React.memo(() => {
                                         size="small"
                                         sx={{ 
                                             mr: 1,
-                                            color: '#9e9e9e',
+                                            background: 'rgba(244, 67, 54, 0.1)',
+                                            color: '#f44336',
+                                            borderRadius: '8px',
+                                            width: '32px',
+                                            height: '32px',
+                                            transition: 'all 0.2s ease',
                                             '&:hover': { 
-                                                color: '#f44336',
-                                                backgroundColor: 'rgba(244, 67, 54, 0.08)'
+                                                background: 'rgba(244, 67, 54, 0.15)',
+                                                color: '#d32f2f',
+                                                transform: 'scale(1.05)',
                                             }
                                         }}
                                     >
-                                        <ClearIcon fontSize="small" />
+                                        <ClearIcon sx={{ fontSize: 16 }} />
                                     </IconButton>
                                 )}
                                 <IconButton 
                                     onClick={handleSearchClick}
                                     disabled={!localQuery.trim()}
                                     sx={{
-                                        color: '#2196F3',
-                                        '&:hover': { 
-                                            backgroundColor: 'rgba(33, 150, 243, 0.08)'
+                                        background: localQuery.trim() 
+                                            ? 'linear-gradient(135deg, #2196F3, #42A5F5)' 
+                                            : 'rgba(224, 224, 224, 0.5)',
+                                        color: localQuery.trim() ? '#ffffff' : '#bdbdbd',
+                                        borderRadius: '10px',
+                                        width: '40px',
+                                        height: '40px',
+                                        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                                        border: localQuery.trim() ? 'none' : '1px solid rgba(189, 189, 189, 0.3)',
+                                        boxShadow: localQuery.trim() 
+                                            ? '0 4px 16px rgba(33, 150, 243, 0.3)' 
+                                            : 'none',
+                                        '&:hover': localQuery.trim() ? {
+                                            background: 'linear-gradient(135deg, #1976D2, #1E88E5)',
+                                            transform: 'translateY(-1px)',
+                                            boxShadow: '0 6px 20px rgba(33, 150, 243, 0.4)',
+                                        } : {
+                                            backgroundColor: 'rgba(224, 224, 224, 0.7)',
                                         },
+                                        '&:active': localQuery.trim() ? {
+                                            transform: 'translateY(0px)',
+                                        } : {},
                                         '&:disabled': {
-                                            color: '#e0e0e0'
+                                            background: 'rgba(224, 224, 224, 0.5)',
+                                            color: '#bdbdbd'
                                         }
                                     }}
                                 >
-                                    <SearchIcon />
+                                    <SearchIcon sx={{ fontSize: 20 }} />
                                 </IconButton>
                             </Box>
                         </Paper>

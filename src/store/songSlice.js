@@ -34,11 +34,25 @@ export const fetchCandidatesByName = createAsyncThunk(
     }
 );
 
+export const fetchSongsByBlur = createAsyncThunk(
+    'song/fetchSongsByBlur',
+    async ({ keyword, pageNum, pageSize }, { rejectWithValue }) => {
+        try {
+            console.log("Fetching songs by blur search:", keyword);
+            const response = await getSongByKeyword(keyword);
+            return { songs: response.data, pageNum };
+        } catch (error) {
+            return rejectWithValue(error.message);
+        }
+    }
+);
+
 const songSlice = createSlice({
     name: 'song',
     initialState: {
         searchQuery: "",
         candidateSuggestions: [],
+        candidatesLoading: false, // 独立的候选建议加载状态
         persistentMode: "",
         persistentKeyword: "",
         songs: [],
@@ -98,14 +112,36 @@ const songSlice = createSlice({
             });
         builder
             .addCase(fetchCandidatesByName.pending, (state) => {
-                state.loading = true;
-                state.error = null;
+                state.candidatesLoading = true; // 使用独立的loading状态
             })
             .addCase(fetchCandidatesByName.fulfilled, (state, action) => {
-                state.loading = false;
+                state.candidatesLoading = false;
                 state.candidateSuggestions = action.payload;
             })
             .addCase(fetchCandidatesByName.rejected, (state, action) => {
+                state.candidatesLoading = false;
+                state.error = action.payload;
+            });
+        builder
+            .addCase(fetchSongsByBlur.pending, (state) => {
+                state.loading = true;
+                state.error = null;
+            })
+            .addCase(fetchSongsByBlur.fulfilled, (state, action) => {
+                state.loading = false;
+                state.pageNum = action.payload.pageNum;
+                const newSongs = action.payload.songs;
+                
+                if (action.payload.pageNum === 1) {
+                    state.songs = newSongs;
+                } else {
+                    state.songs = [...state.songs, ...newSongs];
+                }
+                
+                // 模糊搜索通常是一次性的，不支持分页，所以设置hasMore为false
+                state.hasMore = false;
+            })
+            .addCase(fetchSongsByBlur.rejected, (state, action) => {
                 state.loading = false;
                 state.error = action.payload;
             });

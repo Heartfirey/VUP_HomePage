@@ -141,6 +141,11 @@ const SearchResultCard = () => {
                     searchKey = "id";
                 } else if (persistentMode === "isSuper") {
                     searchKey = "isSuper";
+                } else if (persistentMode === "songName") {
+                    searchKey = "songName";
+                } else if (persistentMode === "blur") {
+                    // 模糊搜索不支持分页，直接返回，不触发加载
+                    return;
                 }
                 
                 dispatch(fetchSongsByKeyValue({ 
