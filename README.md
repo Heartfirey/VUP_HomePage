@@ -2,7 +2,7 @@
 
 这是一个强大的虚拟主播个人主页系统前端页面，目前用于 水奈Rin 的歌单网站。
 
-<!-- ![image](https://github.com/user-attachments/assets/744cc3bf-f6bc-48ef-8e45-08e48c8e07a8) -->
+<img width="2292" height="1285" alt="19c6a3ff-ea49-4834-a8f9-65de729aedaa-min" src="https://github.com/user-attachments/assets/d894e4bb-479a-492d-84d1-019e6ef7da2c" />
 
 Deploy
 

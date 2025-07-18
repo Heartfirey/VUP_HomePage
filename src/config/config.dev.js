@@ -3,7 +3,7 @@ export default {
         roomId: '1791269118',
         uid: '3494370919581938',
         name: '水奈Rin',
-        fanTag: '待确定',
+        fanTag: '团奈米',
         copyright: '© 2025 水奈Rin',
     },
     siteSettings: {
