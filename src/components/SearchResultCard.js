@@ -14,6 +14,8 @@ import {
 import { setPersistentSearch, fetchSongsByKeyValue } from '../store/songSlice';
 import { motion, AnimatePresence } from 'framer-motion';
 import CopyToClipboardSnackbar from '../services/copyUtils';
+import MusicDetailsModal from './MusicDetailsModal';
+import LyricsSearchCard from './LyricsSearchCard';
 
 // 导入背景图片
 import PhoneCardBG from '../assets/PhoneCardBG.png';
@@ -32,6 +34,8 @@ import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import NatureIcon from '@mui/icons-material/Nature';
 import CreateIcon from '@mui/icons-material/Create';
 import ChildCareIcon from '@mui/icons-material/ChildCare';
+// B站相关图标
+import VideoLibraryIcon from '@mui/icons-material/VideoLibrary';
 
 // SC价值映射
 const scColorMapping = {
@@ -60,9 +64,14 @@ const getLanguageIcon = (language) => {
 
 const getSCStyle = (scValue) => {
     if (!scValue) return null;
-    const scNumber = parseInt(scValue);
+    
+    // 提取数字部分，支持"50SC"、"50"等格式
+    const scMatch = scValue.toString().match(/\d+/);
+    if (!scMatch) return null;
+    
+    const scNumber = parseInt(scMatch[0]);
     if (isNaN(scNumber)) {
-        return scColorMapping.low; // 默认为低级别
+        return null;
     } else if (scNumber < 50) {
         return scColorMapping.low;
     } else if (scNumber >= 50 && scNumber < 100) {
@@ -73,10 +82,14 @@ const getSCStyle = (scValue) => {
 };
 const SearchResultCard = () => {
     const dispatch = useDispatch();
-    const { persistentMode, persistentKeyword, pageNum, pageSize, songs, loading, hasMore } = useSelector(state => state.song);
+    const { persistentMode, persistentKeyword, searchQuery, pageNum, pageSize, songs, loading, hasMore } = useSelector(state => state.song);
     const copyRef = useRef();
     const observer = useRef();
     const [previousSongsCount, setPreviousSongsCount] = useState(0);
+    
+    // 音乐详情模态框状态
+    const [musicDetailsOpen, setMusicDetailsOpen] = useState(false);
+    const [selectedSongId, setSelectedSongId] = useState(null);
     
     // 性能检测：减少动画在低端设备上的影响
     const [enableAnimations, setEnableAnimations] = useState(true);
@@ -146,6 +159,9 @@ const SearchResultCard = () => {
                 } else if (persistentMode === "blur") {
                     // 模糊搜索不支持分页，直接返回，不触发加载
                     return;
+                } else if (persistentMode === "lyrics") {
+                    // 歌词搜索不支持分页，直接返回，不触发加载
+                    return;
                 }
                 
                 dispatch(fetchSongsByKeyValue({ 
@@ -162,6 +178,18 @@ const SearchResultCard = () => {
         
         if (node) observer.current.observe(node);
     }, [loading, dispatch, persistentMode, persistentKeyword, pageNum, pageSize, songs.length, hasMore]);
+
+    // 双击事件处理
+    const handleDoubleClick = (song) => {
+        setSelectedSongId(song.id);
+        setMusicDetailsOpen(true);
+    };
+    
+    // 关闭模态框
+    const handleCloseMusicDetails = () => {
+        setMusicDetailsOpen(false);
+        setSelectedSongId(null);
+    };
 
     const handleCardClick = (songName) => {
         if (copyRef.current) {
@@ -223,6 +251,7 @@ const SearchResultCard = () => {
             >
                 <Card
                     onClick={() => handleCardClick(song.songName)}
+                    onDoubleClick={() => handleDoubleClick(song)}
                     sx={{
                         position: 'relative',
                         overflow: 'hidden',
@@ -542,6 +571,33 @@ const SearchResultCard = () => {
                                 );
                             })()}
 
+                            {/* B站投稿标签 */}
+                            {song.relatedVideosCount > 0 && (
+                                <Chip
+                                    icon={<VideoLibraryIcon sx={{ fontSize: '12px !important', color: '#FF69B4' }} />}
+                                    label={`${song.relatedVideosCount}个投稿`}
+                                    size="small"
+                                    sx={{
+                                        background: 'rgba(255, 105, 180, 0.1)',
+                                        color: '#FF69B4',
+                                        fontWeight: 600,
+                                        fontSize: '0.7rem',
+                                        height: '24px',
+                                        borderRadius: '12px',
+                                        border: '1px solid rgba(255, 105, 180, 0.3)',
+                                        transition: 'all 0.2s ease',
+                                        boxShadow: 'none',
+                                        minWidth: '40px',
+                                        flex: '0 0 auto',
+                                        '& .MuiChip-icon': {
+                                            marginLeft: '8px',
+                                            marginRight: '0px',
+                                            color: '#FF69B4'
+                                        }
+                                    }}
+                                />
+                            )}
+
                             {/* 备注信息 */}
                             {song.info && song.info.trim() !== "" && (
                                 <Chip
@@ -585,15 +641,36 @@ const SearchResultCard = () => {
                 {songs.length > 0 ? (
                     <Grid container spacing={2}>
                         <AnimatePresence mode="popLayout">
-                            {songs.map((song, index) => (
-                                <Grid item xs={12} sm={6} md={4} lg={3} key={`${song.id}-${index}`}>
-                                    <SongCard 
-                                        song={song} 
-                                        index={index}
-                                        isLast={songs.length === index + 1}
-                                    />
-                                </Grid>
-                            ))}
+                            {songs.map((song, index) => {
+                                // 判断是否为歌词搜索模式
+                                const isLyricsMode = persistentMode === 'lyrics';
+                                
+                                return (
+                                    <Grid 
+                                        item 
+                                        xs={12} 
+                                        sm={isLyricsMode ? 12 : 6} 
+                                        md={isLyricsMode ? 6 : 4} 
+                                        lg={isLyricsMode ? 4 : 3} 
+                                        key={`${song.id}-${index}`}
+                                    >
+                                        {isLyricsMode ? (
+                                            <LyricsSearchCard
+                                                song={song}
+                                                searchKeyword={searchQuery || persistentKeyword}
+                                                onCopy={handleCardClick}
+                                                onDoubleClick={handleDoubleClick}
+                                            />
+                                        ) : (
+                                            <SongCard 
+                                                song={song} 
+                                                index={index}
+                                                isLast={songs.length === index + 1}
+                                            />
+                                        )}
+                                    </Grid>
+                                );
+                            })}
                         </AnimatePresence>
                     </Grid>
                 ) : !loading && (
@@ -773,6 +850,11 @@ const SearchResultCard = () => {
                 )}
             </Box>
             <CopyToClipboardSnackbar ref={copyRef} />
+            <MusicDetailsModal 
+                open={musicDetailsOpen}
+                onClose={handleCloseMusicDetails}
+                songId={selectedSongId}
+            />
         </>
     );
 };

@@ -1,5 +1,5 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import { getSongListByKey, getSuperSongList, getSongByKeyword } from '../services/API/backend/songApi';
+import { getSongListByKey, getSuperSongList, getSongByKeyword, searchSongsByLyrics } from '../services/API/backend/songApi';
 
 
 export const fetchSongsByKeyValue = createAsyncThunk(
@@ -25,7 +25,6 @@ export const fetchCandidatesByName = createAsyncThunk(
     'song/fetchCandidatesByName',
     async ({ localQuery, pageNum, pageSize }, { rejectWithValue }) => {
         try {
-            console.log("Fetching candidates for song name:", localQuery);
             const response = await getSongByKeyword(localQuery);
             return response.data;
         } catch (error) {
@@ -38,9 +37,21 @@ export const fetchSongsByBlur = createAsyncThunk(
     'song/fetchSongsByBlur',
     async ({ keyword, pageNum, pageSize }, { rejectWithValue }) => {
         try {
-            console.log("Fetching songs by blur search:", keyword);
             const response = await getSongByKeyword(keyword);
             return { songs: response.data, pageNum };
+        } catch (error) {
+            return rejectWithValue(error.message);
+        }
+    }
+);
+
+export const fetchSongsByLyrics = createAsyncThunk(
+    'song/fetchSongsByLyrics',
+    async ({ keyword, pageNum, pageSize }, { rejectWithValue }) => {
+        try {
+            const response = await searchSongsByLyrics(keyword, pageNum, pageSize);
+            const { list, total } = response.data;
+            return { songs: list, pageNum, total };
         } catch (error) {
             return rejectWithValue(error.message);
         }
@@ -142,6 +153,29 @@ const songSlice = createSlice({
                 state.hasMore = false;
             })
             .addCase(fetchSongsByBlur.rejected, (state, action) => {
+                state.loading = false;
+                state.error = action.payload;
+            });
+        builder
+            .addCase(fetchSongsByLyrics.pending, (state) => {
+                state.loading = true;
+                state.error = null;
+            })
+            .addCase(fetchSongsByLyrics.fulfilled, (state, action) => {
+                state.loading = false;
+                state.pageNum = action.payload.pageNum;
+                const newSongs = action.payload.songs;
+                
+                if (action.payload.pageNum === 1) {
+                    state.songs = newSongs;
+                } else {
+                    state.songs = [...state.songs, ...newSongs];
+                }
+                
+                // 判断是否还有更多数据：如果返回的数据量少于pageSize，说明没有更多数据了
+                state.hasMore = newSongs.length >= state.pageSize;
+            })
+            .addCase(fetchSongsByLyrics.rejected, (state, action) => {
                 state.loading = false;
                 state.error = action.payload;
             });

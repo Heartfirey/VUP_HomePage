@@ -21,6 +21,7 @@ import {
     fetchSongsByKeyValue,
     fetchCandidatesByName,
     fetchSongsByBlur,
+    fetchSongsByLyrics,
     setSearchQuery,
     setPersistentSearch,
     setPageSize,
@@ -37,6 +38,7 @@ import LanguageIcon from '@mui/icons-material/Language';
 import MusicNoteIcon from '@mui/icons-material/MusicNote';
 import AllInclusiveIcon from '@mui/icons-material/AllInclusive';
 import CategoryIcon from '@mui/icons-material/Category';
+import LyricsIcon from '@mui/icons-material/Lyrics';
 // Badge 图标
 import TranslateIcon from '@mui/icons-material/Translate';
 import PaletteIcon from '@mui/icons-material/Palette';
@@ -44,7 +46,6 @@ import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import NatureIcon from '@mui/icons-material/Nature';
 import CreateIcon from '@mui/icons-material/Create';
 import ChildCareIcon from '@mui/icons-material/ChildCare';
-import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 
 // 分类数据结构优化
 const categoryConfig = {
@@ -93,10 +94,17 @@ const SearchCard = React.memo(() => {
     const [isSuperSong, setIsSuperSong] = useState(false);
     const [selectedBadges, setSelectedBadges] = useState(new Set()); // 新增：选中的Badge状态
     const [dynamicPageSize, setDynamicPageSize] = useState(15);
+    const [searchMode, setSearchMode] = useState('regular'); // 新增：搜索模式状态 ('regular' | 'lyrics')
     const copyRef = useRef();
+    const dynamicPageSizeRef = useRef(15);
     
     // 防抖搜索
     const debouncedQuery = useRef(null);
+    
+    // 更新pageSize ref
+    useEffect(() => {
+        dynamicPageSizeRef.current = dynamicPageSize;
+    }, [dynamicPageSize]);
 
     useEffect(() => {
         const calculatePageSize = () => {
@@ -124,7 +132,7 @@ const SearchCard = React.memo(() => {
         // 监听窗口大小变化
         window.addEventListener('resize', handleResize);
         return () => window.removeEventListener('resize', handleResize);
-    }, []);
+    }, [dispatch]); // 只依赖dispatch
 
     useEffect(() => {
         // 清除之前的定时器
@@ -134,7 +142,7 @@ const SearchCard = React.memo(() => {
         
         debouncedQuery.current = setTimeout(() => {
             if (localQuery.trim()) {
-                dispatch(fetchCandidatesByName({ localQuery, pageNum: 1, pageSize: dynamicPageSize }));
+                dispatch(fetchCandidatesByName({ localQuery, pageNum: 1, pageSize: dynamicPageSizeRef.current }));
             }
         }, 300);
         
@@ -143,35 +151,71 @@ const SearchCard = React.memo(() => {
                 clearTimeout(debouncedQuery.current);
             }
         };
-    }, [localQuery, dispatch, dynamicPageSize]);
+    }, [localQuery, dispatch]); // 移除dynamicPageSize依赖
 
     // 事件处理函数
     const handleSearchClick = useCallback(() => {
-        if (localQuery.trim() === "") return;
+        const trimmedQuery = localQuery.trim();
         
-        dispatch(setSearchQuery(localQuery.trim()));
-        dispatch(setPersistentSearch({ mode: "blur", keyword: localQuery.trim() }));
-        dispatch(resetSongs());
+        dispatch(setSearchQuery(trimmedQuery));
         
-        dispatch(fetchSongsByBlur({ 
-            keyword: localQuery.trim(), 
-            pageNum: 1, 
-            pageSize: dynamicPageSize 
-        }));
+        if (searchMode === 'lyrics') {
+            if (trimmedQuery === "") {
+                // 空内容歌词搜索 - 显示所有歌曲
+                dispatch(setPersistentSearch({ mode: "songType", keyword: "" }));
+                dispatch(resetSongs());
+                dispatch(fetchSongsByKeyValue({ 
+                    key: 'songType', 
+                    value: '', 
+                    pageNum: 1, 
+                    pageSize: dynamicPageSizeRef.current 
+                }));
+            } else {
+                // 正常歌词搜索
+                dispatch(setPersistentSearch({ mode: "lyrics", keyword: trimmedQuery }));
+                dispatch(resetSongs());
+                dispatch(fetchSongsByLyrics({ 
+                    keyword: trimmedQuery, 
+                    pageNum: 1, 
+                    pageSize: dynamicPageSizeRef.current 
+                }));
+            }
+        } else {
+            if (trimmedQuery === "") {
+                // 空内容普通搜索 - 显示所有歌曲
+                dispatch(setPersistentSearch({ mode: "songType", keyword: "" }));
+                dispatch(resetSongs());
+                dispatch(fetchSongsByKeyValue({ 
+                    key: 'songType', 
+                    value: '', 
+                    pageNum: 1, 
+                    pageSize: dynamicPageSizeRef.current 
+                }));
+            } else {
+                // 正常模糊搜索
+                dispatch(setPersistentSearch({ mode: "blur", keyword: trimmedQuery }));
+                dispatch(resetSongs());
+                dispatch(fetchSongsByBlur({ 
+                    keyword: trimmedQuery, 
+                    pageNum: 1, 
+                    pageSize: dynamicPageSizeRef.current 
+                }));
+            }
+        }
         
         // 重置其他状态
         setSelectedBadges(new Set());
         setIsSuperSong(false);
         setOpenPopper(false);
-    }, [localQuery, dispatch, dynamicPageSize]);
+    }, [localQuery, searchMode, dispatch]);
 
     const handleCandidateClick = useCallback((candidate) => {
         dispatch(setPersistentSearch({ mode: "id", keyword: candidate.id }));
         dispatch(resetSongs());
-        dispatch(fetchSongsByKeyValue({ key: 'id', value: candidate.id, pageNum: 1, pageSize: dynamicPageSize }));
+        dispatch(fetchSongsByKeyValue({ key: 'id', value: candidate.id, pageNum: 1, pageSize: dynamicPageSizeRef.current }));
         setOpenPopper(false);
         setLocalQuery(candidate.songName);
-    }, [dispatch, dynamicPageSize]);
+    }, [dispatch]);
 
     const handleCategoryClick = useCallback((keyword, reqKey) => {
         const badgeKey = `${reqKey}-${keyword}`;
@@ -189,14 +233,14 @@ const SearchCard = React.memo(() => {
         if (selectedBadges.has(badgeKey)) {
             dispatch(setPersistentSearch({ mode: "songType", keyword: "" }));
             dispatch(resetSongs());
-            dispatch(fetchSongsByKeyValue({ key: 'songType', value: '', pageNum: 1, pageSize: dynamicPageSize }));
+            dispatch(fetchSongsByKeyValue({ key: 'songType', value: '', pageNum: 1, pageSize: dynamicPageSizeRef.current }));
         } else {
             dispatch(setPersistentSearch({ mode: "songType", keyword: keyword }));
             dispatch(resetSongs());
-            dispatch(fetchSongsByKeyValue({ key: reqKey, value: keyword, pageNum: 1, pageSize: dynamicPageSize }));
+            dispatch(fetchSongsByKeyValue({ key: reqKey, value: keyword, pageNum: 1, pageSize: dynamicPageSizeRef.current }));
         }
         setLocalQuery("");
-    }, [dispatch, dynamicPageSize, selectedBadges]);
+    }, [dispatch, selectedBadges]);
 
     const handleQuickAction = useCallback((action) => {
         if (action === 'random') {
@@ -213,16 +257,16 @@ const SearchCard = React.memo(() => {
             if (isSuperSong) {
                 dispatch(setPersistentSearch({ mode: 'songType', keyword: '' }));
                 dispatch(resetSongs());
-                dispatch(fetchSongsByKeyValue({ key: 'songType', value: '', pageNum: 1, pageSize: dynamicPageSize }));
+                dispatch(fetchSongsByKeyValue({ key: 'songType', value: '', pageNum: 1, pageSize: dynamicPageSizeRef.current }));
             } else {
                 dispatch(setPersistentSearch({ mode: 'isSuper', keyword: 1 }));
                 dispatch(resetSongs());
-                dispatch(fetchSongsByKeyValue({ key: 'isSuper', value: 1, pageNum: 1, pageSize: dynamicPageSize }));
+                dispatch(fetchSongsByKeyValue({ key: 'isSuper', value: 1, pageNum: 1, pageSize: dynamicPageSizeRef.current }));
             }
             setIsSuperSong(!isSuperSong);
             setLocalQuery("");
         }
-    }, [dispatch, isSuperSong, dynamicPageSize]);
+    }, [dispatch, isSuperSong]);
 
     const handleClearSearch = useCallback(() => {
         setLocalQuery("");
@@ -231,12 +275,12 @@ const SearchCard = React.memo(() => {
         // 清除搜索内容时，恢复显示全部歌曲
         dispatch(setPersistentSearch({ mode: "songType", keyword: "" }));
         dispatch(resetSongs());
-        dispatch(fetchSongsByKeyValue({ key: 'songType', value: '', pageNum: 1, pageSize: dynamicPageSize }));
+        dispatch(fetchSongsByKeyValue({ key: 'songType', value: '', pageNum: 1, pageSize: dynamicPageSizeRef.current }));
         
         // 重置其他状态
         setSelectedBadges(new Set());
         setIsSuperSong(false);
-    }, [dispatch, dynamicPageSize]);
+    }, [dispatch]);
 
     const handleKeyPress = useCallback((e) => {
         if (e.key === 'Enter') {
@@ -256,20 +300,30 @@ const SearchCard = React.memo(() => {
                             sx={{
                                 backgroundColor: 'rgba(255, 255, 255, 0.9)',
                                 borderRadius: '16px',
-                                border: '1px solid rgba(255, 255, 255, 0.3)',
+                                border: searchMode === 'lyrics' 
+                                    ? '1px solid rgba(0, 150, 136, 0.3)'
+                                    : '1px solid rgba(255, 255, 255, 0.3)',
                                 backdropFilter: 'blur(20px)',
                                 WebkitBackdropFilter: 'blur(20px)',
-                                boxShadow: '0 8px 32px rgba(0, 0, 0, 0.06)',
+                                boxShadow: searchMode === 'lyrics'
+                                    ? '0 8px 32px rgba(0, 150, 136, 0.06)'
+                                    : '0 8px 32px rgba(0, 0, 0, 0.06)',
                                 transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
                                 '&:hover': {
                                     backgroundColor: 'rgba(255, 255, 255, 0.95)',
                                     transform: 'translateY(-2px)',
-                                    boxShadow: '0 12px 40px rgba(0, 0, 0, 0.08)',
+                                    boxShadow: searchMode === 'lyrics'
+                                        ? '0 12px 40px rgba(0, 150, 136, 0.08)'
+                                        : '0 12px 40px rgba(0, 0, 0, 0.08)',
                                 },
                                 '&:focus-within': {
                                     backgroundColor: 'rgba(255, 255, 255, 0.98)',
-                                    border: '1px solid #2196F3',
-                                    boxShadow: '0 12px 40px rgba(33, 150, 243, 0.15)',
+                                    border: searchMode === 'lyrics'
+                                        ? '1px solid #009688'
+                                        : '1px solid #2196F3',
+                                    boxShadow: searchMode === 'lyrics'
+                                        ? '0 12px 40px rgba(0, 150, 136, 0.15)'
+                                        : '0 12px 40px rgba(33, 150, 243, 0.15)',
                                 }
                             }}
                             ref={setAnchorEl}
@@ -277,14 +331,14 @@ const SearchCard = React.memo(() => {
                             <Box className="flex items-center px-3 py-2">
                                 <LibraryMusicTwoToneIcon 
                                     sx={{ 
-                                        color: '#2196F3', 
+                                        color: searchMode === 'lyrics' ? '#009688' : '#2196F3', 
                                         fontSize: 24,
                                         mr: 2,
                                         transition: 'all 0.3s ease'
                                     }} 
                                 />
                                 <InputBase
-                                    placeholder="搜索歌曲 / 歌手"
+                                    placeholder={searchMode === 'lyrics' ? '搜索歌词内容...' : '搜索歌曲 / 歌手'}
                                     value={localQuery}
                                     onChange={(e) => setLocalQuery(e.target.value)}
                                     onFocus={() => setOpenPopper(true)}
@@ -296,16 +350,18 @@ const SearchCard = React.memo(() => {
                                         fontWeight: 500,
                                         color: '#1a1a1a',
                                         '& .MuiInputBase-input::placeholder': {
-                                            color: '#9e9e9e',
-                                            opacity: 1,
+                                            color: searchMode === 'lyrics' ? '#009688' : '#2196F3',
+                                            opacity: 0.7,
+                                            transition: 'color 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
                                         }
                                     }}
                                 />
-                                {localQuery && (
-                                    <IconButton 
-                                        onClick={handleClearSearch}
+                                
+                                {localQuery.trim() && (
+                                    <IconButton
                                         size="small"
-                                        sx={{ 
+                                        onClick={handleClearSearch}
+                                        sx={{
                                             mr: 1,
                                             background: 'rgba(244, 67, 54, 0.1)',
                                             color: '#f44336',
@@ -323,32 +379,78 @@ const SearchCard = React.memo(() => {
                                         <ClearIcon sx={{ fontSize: 16 }} />
                                     </IconButton>
                                 )}
+                                
+                                {/* 搜索模式切换按钮 */}
+                                <IconButton
+                                    size="small"
+                                    onClick={() => {
+                                        setSearchMode(searchMode === 'regular' ? 'lyrics' : 'regular');
+                                        setOpenPopper(false);
+                                    }}
+                                    sx={{
+                                        mr: 1,
+                                        width: 36,
+                                        height: 36,
+                                        backgroundColor: searchMode === 'lyrics' 
+                                            ? 'rgba(0, 150, 136, 0.1)' 
+                                            : 'rgba(33, 150, 243, 0.1)',
+                                        border: searchMode === 'lyrics'
+                                            ? '2px solid rgba(0, 150, 136, 0.3)'
+                                            : '2px solid rgba(33, 150, 243, 0.3)',
+                                        color: searchMode === 'lyrics' ? '#009688' : '#2196F3',
+                                        borderRadius: '12px',
+                                        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                                        '&:hover': {
+                                            backgroundColor: searchMode === 'lyrics'
+                                                ? 'rgba(0, 150, 136, 0.15)'
+                                                : 'rgba(33, 150, 243, 0.15)',
+                                            border: searchMode === 'lyrics'
+                                                ? '2px solid rgba(0, 150, 136, 0.5)'
+                                                : '2px solid rgba(33, 150, 243, 0.5)',
+                                            transform: 'translateY(-1px)',
+                                            boxShadow: searchMode === 'lyrics'
+                                                ? '0 4px 12px rgba(0, 150, 136, 0.2)'
+                                                : '0 4px 12px rgba(33, 150, 243, 0.2)'
+                                        },
+                                        '&:active': {
+                                            transform: 'translateY(0px)'
+                                        }
+                                    }}
+                                >
+                                    {searchMode === 'lyrics' ? (
+                                        <LyricsIcon sx={{ fontSize: 18 }} />
+                                    ) : (
+                                        <MusicNoteIcon sx={{ fontSize: 18 }} />
+                                    )}
+                                </IconButton>
+                                
                                 <IconButton 
                                     onClick={handleSearchClick}
-                                    disabled={!localQuery.trim()}
                                     sx={{
-                                        background: localQuery.trim() 
-                                            ? 'linear-gradient(135deg, #2196F3, #42A5F5)' 
-                                            : 'rgba(224, 224, 224, 0.5)',
-                                        color: localQuery.trim() ? '#ffffff' : '#bdbdbd',
+                                        background: searchMode === 'lyrics' 
+                                            ? 'linear-gradient(135deg, #009688, #4DB6AC)' 
+                                            : 'linear-gradient(135deg, #2196F3, #42A5F5)',
+                                        color: '#ffffff',
                                         borderRadius: '10px',
                                         width: '40px',
                                         height: '40px',
                                         transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                                        border: localQuery.trim() ? 'none' : '1px solid rgba(189, 189, 189, 0.3)',
-                                        boxShadow: localQuery.trim() 
-                                            ? '0 4px 16px rgba(33, 150, 243, 0.3)' 
-                                            : 'none',
-                                        '&:hover': localQuery.trim() ? {
-                                            background: 'linear-gradient(135deg, #1976D2, #1E88E5)',
+                                        border: 'none',
+                                        boxShadow: searchMode === 'lyrics'
+                                            ? '0 4px 16px rgba(0, 150, 136, 0.3)'
+                                            : '0 4px 16px rgba(33, 150, 243, 0.3)',
+                                        '&:hover': {
+                                            background: searchMode === 'lyrics'
+                                                ? 'linear-gradient(135deg, #00695C, #009688)'
+                                                : 'linear-gradient(135deg, #1976D2, #1E88E5)',
                                             transform: 'translateY(-1px)',
-                                            boxShadow: '0 6px 20px rgba(33, 150, 243, 0.4)',
-                                        } : {
-                                            backgroundColor: 'rgba(224, 224, 224, 0.7)',
+                                            boxShadow: searchMode === 'lyrics'
+                                                ? '0 6px 20px rgba(0, 150, 136, 0.4)'
+                                                : '0 6px 20px rgba(33, 150, 243, 0.4)',
                                         },
-                                        '&:active': localQuery.trim() ? {
+                                        '&:active': {
                                             transform: 'translateY(0px)',
-                                        } : {},
+                                        },
                                         '&:disabled': {
                                             background: 'rgba(224, 224, 224, 0.5)',
                                             color: '#bdbdbd'
@@ -379,13 +481,18 @@ const SearchCard = React.memo(() => {
                                         sx={{
                                             backgroundColor: 'rgba(255, 255, 255, 0.95)',
                                             borderRadius: '12px',
-                                            border: '1px solid rgba(255, 255, 255, 0.3)',
+                                            border: searchMode === 'lyrics'
+                                                ? '1px solid rgba(0, 150, 136, 0.3)'
+                                                : '1px solid rgba(255, 255, 255, 0.3)',
                                             backdropFilter: 'blur(20px)',
                                             WebkitBackdropFilter: 'blur(20px)',
-                                            boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)',
+                                            boxShadow: searchMode === 'lyrics'
+                                                ? '0 8px 32px rgba(0, 150, 136, 0.1)'
+                                                : '0 8px 32px rgba(0, 0, 0, 0.1)',
                                             overflow: 'hidden',
                                             maxHeight: '300px',
-                                            overflowY: 'auto'
+                                            overflowY: 'auto',
+                                            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
                                         }}
                                     >
                                         <List dense sx={{ py: 0 }}>
@@ -401,54 +508,102 @@ const SearchCard = React.memo(() => {
                                                             '1px solid rgba(0, 0, 0, 0.05)' : 'none',
                                                         transition: 'all 0.2s ease-in-out',
                                                         '&:hover': {
-                                                            backgroundColor: 'rgba(33, 150, 243, 0.08)',
+                                                            backgroundColor: searchMode === 'lyrics'
+                                                                ? 'rgba(0, 150, 136, 0.08)'
+                                                                : 'rgba(33, 150, 243, 0.08)',
                                                             transform: 'translateX(4px)',
                                                         }
                                                     }}
                                                 >
-                                                    <MusicNoteIcon 
-                                                        sx={{ 
-                                                            mr: 2, 
-                                                            color: '#2196F3',
-                                                            fontSize: '1.1rem'
-                                                        }} 
-                                                    />
+                                                    {searchMode === 'lyrics' ? (
+                                                        <LyricsIcon 
+                                                            sx={{ 
+                                                                mr: 2, 
+                                                                color: '#FF9800',
+                                                                fontSize: '1.1rem'
+                                                            }} 
+                                                        />
+                                                    ) : (
+                                                        <MusicNoteIcon 
+                                                            sx={{ 
+                                                                mr: 2, 
+                                                                color: '#2196F3',
+                                                                fontSize: '1.1rem'
+                                                            }} 
+                                                        />
+                                                    )}
                                                     <ListItemText
                                                         primary={
-                                                            <Typography 
-                                                                variant="body2"
-                                                                sx={{
-                                                                    fontWeight: 500,
-                                                                    color: '#1a1a1a',
-                                                                    fontSize: '0.95rem'
-                                                                }}
-                                                            >
-                                                                {candidate.songName}
-                                                                {candidate.songOwner && (
-                                                                    <span style={{ 
-                                                                        fontWeight: 400, 
-                                                                        color: '#757575',
-                                                                        marginLeft: '8px'
-                                                                    }}>
-                                                                        - {candidate.songOwner}
-                                                                    </span>
-                                                                )}
-                                                                {candidate.songType && (
-                                                                    <Chip
-                                                                        label={candidate.songType}
-                                                                        size="small"
+                                                            searchMode === 'lyrics' ? (
+                                                                <Box>
+                                                                    <Typography 
+                                                                        variant="body2"
                                                                         sx={{
-                                                                            ml: 1,
-                                                                            height: '20px',
-                                                                            fontSize: '0.75rem',
-                                                                            background: 'linear-gradient(135deg, #2196F3, #42A5F5)',
-                                                                            color: '#ffffff',
-                                                                            border: 'none',
-                                                                            fontWeight: 600
+                                                                            fontWeight: 600,
+                                                                            color: '#1a1a1a',
+                                                                            fontSize: '0.95rem',
+                                                                            mb: 0.5
                                                                         }}
-                                                                    />
-                                                                )}
-                                                            </Typography>
+                                                                    >
+                                                                        {candidate.songName}
+                                                                        {candidate.songOwner && (
+                                                                            <span style={{ 
+                                                                                fontWeight: 400, 
+                                                                                color: '#757575',
+                                                                                marginLeft: '8px'
+                                                                            }}>
+                                                                                - {candidate.songOwner}
+                                                                            </span>
+                                                                        )}
+                                                                    </Typography>
+                                                                    {/* 显示歌词片段提示 */}
+                                                                    <Typography 
+                                                                        variant="caption"
+                                                                        sx={{
+                                                                            color: '#FF9800',
+                                                                            fontStyle: 'italic',
+                                                                            fontSize: '0.8rem'
+                                                                        }}
+                                                                    >
+                                                                        点击查看歌词匹配结果
+                                                                    </Typography>
+                                                                </Box>
+                                                            ) : (
+                                                                <Typography 
+                                                                    variant="body2"
+                                                                    sx={{
+                                                                        fontWeight: 500,
+                                                                        color: '#1a1a1a',
+                                                                        fontSize: '0.95rem'
+                                                                    }}
+                                                                >
+                                                                    {candidate.songName}
+                                                                    {candidate.songOwner && (
+                                                                        <span style={{ 
+                                                                            fontWeight: 400, 
+                                                                            color: '#757575',
+                                                                            marginLeft: '8px'
+                                                                        }}>
+                                                                            - {candidate.songOwner}
+                                                                        </span>
+                                                                    )}
+                                                                    {candidate.songType && (
+                                                                        <Chip
+                                                                            label={candidate.songType}
+                                                                            size="small"
+                                                                            sx={{
+                                                                                ml: 1,
+                                                                                height: '20px',
+                                                                                fontSize: '0.75rem',
+                                                                                background: 'linear-gradient(135deg, #2196F3, #42A5F5)',
+                                                                                color: '#ffffff',
+                                                                                border: 'none',
+                                                                                fontWeight: 600
+                                                                            }}
+                                                                        />
+                                                                    )}
+                                                                </Typography>
+                                                            )
                                                         }
                                                     />
                                                 </ListItem>
@@ -808,31 +963,38 @@ const SearchCard = React.memo(() => {
                                     mt: 0,
                                     py: 0.5,
                                     px: 1.5,
-                                    backgroundColor: 'rgba(33, 150, 243, 0.08)',
+                                    backgroundColor: searchMode === 'lyrics' 
+                                        ? 'rgba(0, 150, 136, 0.08)' 
+                                        : 'rgba(33, 150, 243, 0.08)',
                                     borderRadius: '6px',
-                                    border: '1px solid rgba(33, 150, 243, 0.2)',
+                                    border: searchMode === 'lyrics'
+                                        ? '1px solid rgba(0, 150, 136, 0.2)'
+                                        : '1px solid rgba(33, 150, 243, 0.2)',
                                     display: 'flex',
                                     alignItems: 'center',
-                                    gap: 0.8
+                                    gap: 0.8,
+                                    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
                                 }}
                             >
-                                <ContentCopyIcon 
+                                <LibraryMusicTwoToneIcon 
                                     sx={{ 
-                                        fontSize: 14, 
-                                        color: '#2196F3',
-                                        flexShrink: 0
+                                        color: searchMode === 'lyrics' ? '#009688' : '#2196F3', 
+                                        fontSize: '20px',
+                                        opacity: 0.7,
+                                        transition: 'color 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
                                     }} 
                                 />
                                 <Typography 
                                     variant="body2" 
                                     sx={{ 
-                                        color: '#1976D2',
+                                        color: searchMode === 'lyrics' ? '#00695C' : '#1976D2',
                                         fontSize: '0.7rem',
                                         fontWeight: 500,
-                                        lineHeight: 1.2
+                                        lineHeight: 1.2,
+                                        transition: 'color 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
                                     }}
                                 >
-                                    点击歌曲可自动复制到剪切板
+                                    单击歌曲可自动复制到剪切板，双击可查看详情哦～
                                 </Typography>
                             </Box>
                         </Box>
