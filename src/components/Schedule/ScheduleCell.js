@@ -6,15 +6,20 @@ import { useLiveTypes } from '../../hooks/useLiveTypes';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import BedtimeIcon from '@mui/icons-material/Bedtime';
 import RadioButtonUncheckedIcon from '@mui/icons-material/RadioButtonUnchecked';
+// 导入类型图标
+import ChatIcon from '@mui/icons-material/Chat';
+import GroupIcon from '@mui/icons-material/Group';
+import PlayArrowIcon from '@mui/icons-material/PlayArrow';
+import SportsEsportsIcon from '@mui/icons-material/SportsEsports';
+import MusicNoteIcon from '@mui/icons-material/MusicNote';
+import StarIcon from '@mui/icons-material/Star';
 
 const ScheduleCell = ({ events, isToday, maxEventsInWeek = 1 }) => {
     const [isExpanded, setIsExpanded] = useState(false);
     const [isMobile, setIsMobile] = useState(false);
     
-    // 使用live types hook
     const { getTypeColors, getTypeName } = useLiveTypes();
     
-    // 检测移动端
     useEffect(() => {
         const checkMobile = () => {
             setIsMobile(window.innerWidth <= 768);
@@ -26,10 +31,8 @@ const ScheduleCell = ({ events, isToday, maxEventsInWeek = 1 }) => {
         return () => window.removeEventListener('resize', checkMobile);
     }, []);
     
-    // 支持新的数据结构（事件数组）和旧的数据结构（单个事件）
     const eventList = Array.isArray(events) ? events : [events];
     
-    // 过滤掉无效事件，但保留至少一个休息事件用于显示日期
     const validEvents = eventList.filter(event => event && (event.title || event.type === 'rest'));
     const displayEvents = validEvents.length > 0 ? validEvents : [{
         date: events.date || (Array.isArray(events) ? events[0]?.date : null),
@@ -46,10 +49,9 @@ const ScheduleCell = ({ events, isToday, maxEventsInWeek = 1 }) => {
     const formattedDate = dateString ? dayjs(dateString).format('MM/DD') : '';
     const dayOfWeek = dateString ? dayjs(dateString).format('ddd') : '';
 
-    // 计算卡片的最小高度，基于一周内最多事件数 - 响应式优化
     const minHeight = isMobile ? 
-        Math.max(100, 60 + maxEventsInWeek * 35) :  // 手机端更紧凑
-        Math.max(120, 80 + maxEventsInWeek * 50);   // 桌面端原逻辑
+        Math.max(80, 50 + maxEventsInWeek * 28) :  // 手机端更紧凑
+        Math.max(100, 60 + maxEventsInWeek * 36);   // 桌面端紧凑优化
 
     // 检查事件是否已过期
     const isEventPast = (eventDate) => {
@@ -58,7 +60,25 @@ const ScheduleCell = ({ events, isToday, maxEventsInWeek = 1 }) => {
         return event.isBefore(now, 'day') || (event.isSame(now, 'day') && event.isBefore(now));
     };
 
-    // 单个事件渲染组件
+    // 获取类型对应的图标组件
+    const getTypeIcon = (type) => {
+        const iconMap = {
+            'chat': ChatIcon,
+            'collab': GroupIcon,
+            'default': PlayArrowIcon,
+            'game': SportsEsportsIcon,
+            'sing': MusicNoteIcon,
+            'special': StarIcon,
+            'comments': ChatIcon,
+            'users': GroupIcon,
+            'play': PlayArrowIcon,
+            'gamepad': SportsEsportsIcon,
+            'music': MusicNoteIcon,
+            'star': StarIcon
+        };
+        return iconMap[type] || PlayArrowIcon;
+    };
+
     const EventItem = ({ event, isFirst = false }) => {
         const textRef = useRef(null);
         const containerRef = useRef(null);
@@ -68,10 +88,9 @@ const ScheduleCell = ({ events, isToday, maxEventsInWeek = 1 }) => {
             duration: 6
         });
         
-        // 使用API获取颜色
         const eventColors = getTypeColors(event.type);
+        const { liveTypes } = useLiveTypes();
         
-        // 处理API数据不存在的情况 - 定义统一的fallback值
         const FALLBACK_BG_COLOR = 'rgba(156, 163, 175, 0.1)';
         const FALLBACK_FG_COLOR = 'rgb(156, 163, 175)';
         
@@ -86,7 +105,10 @@ const ScheduleCell = ({ events, isToday, maxEventsInWeek = 1 }) => {
         const isPast = isEventPast(event.date);
         const title = event.title || '休息';
         
-        // 测量文本是否需要滚动
+        const typeData = liveTypes[event.type];
+        const iconType = typeData?.icon || event.type;
+        const TypeIcon = getTypeIcon(iconType);
+        
         useEffect(() => {
             if (!textRef.current || !containerRef.current) return;
             
@@ -108,86 +130,97 @@ const ScheduleCell = ({ events, isToday, maxEventsInWeek = 1 }) => {
         
         return (
             <div 
-                className="rounded-lg p-2 md:p-2.5 transition-all duration-200"
+                className="rounded-lg transition-all duration-200 relative overflow-hidden"
                 style={{
                     backgroundColor: eventBgColor,
                     opacity: isPast ? 0.7 : 1
                 }}
             >
-                <div className="flex items-center justify-between mb-1 md:mb-1.5">
-                    {/* 左侧：状态图标和事件类型 */}
-                    <div className="flex items-center space-x-1 md:space-x-1.5 min-w-0 flex-1">
-                        {isPast ? (
-                            <CheckCircleIcon 
-                                sx={{ 
-                                    width: { xs: 12, md: 14 }, 
-                                    height: { xs: 12, md: 14 }, 
-                                    color: eventFgColor,
-                                    opacity: 0.9,
-                                    flexShrink: 0
-                                }} 
-                            />
-                        ) : (
-                            <RadioButtonUncheckedIcon 
-                                sx={{ 
-                                    width: { xs: 12, md: 14 }, 
-                                    height: { xs: 12, md: 14 }, 
-                                    color: eventFgColor,
-                                    opacity: 0.9,
-                                    flexShrink: 0
-                                }} 
-                            />
-                        )}
-                        <span 
-                            className="text-xs px-1 md:px-1.5 py-0.5 rounded font-medium truncate"
-                            style={{ 
-                                backgroundColor: `${eventFgColor}50`,
-                                color: eventFgColor
-                            }}
-                        >
-                            {getTypeName(event.type)}
-                        </span>
+                <div className="p-1.5 md:p-2">
+                    <div className="flex items-center justify-between mb-1">
+                        <div className="flex items-center space-x-1 min-w-0 flex-1">
+                            <div className="inline-flex items-center rounded-md text-xs font-medium text-white shadow-sm"
+                            >
+                                <TypeIcon 
+                                    sx={{ 
+                                        width: { xs: 12, md: 14 }, 
+                                        height: { xs: 12, md: 14 }, 
+                                        color: eventFgColor,
+                                        opacity: 0.9,
+                                        flexShrink: 0
+                                    }} 
+                                />
+                                <span 
+                                    className="text-xs px-1 py-0.5 rounded font-medium truncate"
+                                    style={{ 
+                                        color: eventFgColor
+                                    }}
+                                >
+                                    {getTypeName(event.type)}
+                                </span>
+                            </div>
+                        </div>
+                        
+                        <div className="flex items-center space-x-1 flex-shrink-0">
+                            {eventTime && (
+                                <div className="text-xs text-gray-300 font-mono">
+                                    {eventTime}
+                                </div>
+                            )}
+                            {isPast ? (
+                                <CheckCircleIcon 
+                                    sx={{ 
+                                        width: { xs: 10, md: 12 }, 
+                                        height: { xs: 10, md: 12 }, 
+                                        color: eventFgColor,
+                                        opacity: 0.7,
+                                        flexShrink: 0
+                                    }} 
+                                />
+                            ) : (
+                                <RadioButtonUncheckedIcon 
+                                    sx={{ 
+                                        width: { xs: 10, md: 12 }, 
+                                        height: { xs: 10, md: 12 }, 
+                                        color: eventFgColor,
+                                        opacity: 0.7,
+                                        flexShrink: 0
+                                    }} 
+                                />
+                            )}
+                        </div>
                     </div>
                     
-                    {/* 右侧：时间 */}
-                    {eventTime && (
-                        <div className="text-xs text-gray-400 font-mono flex-shrink-0 ml-1">
-                            {eventTime}
-                        </div>
-                    )}
-                </div>
-                
-                {                /* 事件标题 - 支持横向滚动 */}
-                <div 
-                    ref={containerRef}
-                    className="text-xs md:text-sm font-medium text-gray-100 leading-tight overflow-hidden scroll-container"
-                >
-                    {event.cancelled ? (
-                        <span className="line-through opacity-70">{title}</span>
-                    ) : (
-                        <div 
-                            ref={textRef}
-                            className={clsx(
-                                "whitespace-nowrap",
-                                scrollSettings.needsScroll && "scroll-text"
-                            )}
-                            style={{
-                                '--scroll-end': scrollSettings.needsScroll ? `-${scrollSettings.scrollDistance}px` : '0px',
-                                '--duration': `${scrollSettings.duration}s`,
-                                '--play-state': playState
-                            }}
-                        >
-                            {title}
-                        </div>
-                    )}
-                </div>
-                
-                {/* 事件描述 */}
-                {event.reason && (
-                    <div className="text-xs text-gray-400 mt-0.5 md:mt-1 leading-tight">
-                        {event.reason}
+                    <div 
+                        ref={containerRef}
+                        className="text-xs md:text-sm font-medium text-gray-100 leading-tight overflow-hidden scroll-container"
+                    >
+                        {event.cancelled ? (
+                            <span className="line-through opacity-70">{title}</span>
+                        ) : (
+                            <div 
+                                ref={textRef}
+                                className={clsx(
+                                    "whitespace-nowrap",
+                                    scrollSettings.needsScroll && "scroll-text"
+                                )}
+                                style={{
+                                    '--scroll-end': scrollSettings.needsScroll ? `-${scrollSettings.scrollDistance}px` : '0px',
+                                    '--duration': `${scrollSettings.duration}s`,
+                                    '--play-state': playState
+                                }}
+                            >
+                                {title}
+                            </div>
+                        )}
                     </div>
-                )}
+                    
+                    {event.reason && (
+                        <div className="text-xs text-gray-400 mt-0.5 leading-tight truncate">
+                            {event.reason}
+                        </div>
+                    )}
+                </div>
             </div>
         );
     };
@@ -206,16 +239,14 @@ const ScheduleCell = ({ events, isToday, maxEventsInWeek = 1 }) => {
                     'bg-gradient-to-br from-pink-500/20 via-purple-500/15 to-blue-500/20 ring-2 ring-pink-400/60 shadow-lg shadow-pink-500/20' : 
                     'bg-gradient-to-br from-white/8 via-white/5 to-white/3 hover:from-white/12 hover:via-white/8 hover:to-white/5',
                 showExpandButton && 'cursor-pointer hover:scale-[1.02]',
-                // 为休息日添加特殊的高度类
-                isRestDay ? 'min-h-[80px] md:min-h-[120px]' : ''
+                // 为休息日添加特殊的高度类 - 更紧凑
+                isRestDay ? 'min-h-[70px] md:min-h-[90px]' : ''
             )}
             style={!isRestDay ? { minHeight: `${minHeight}px` } : {}}
             onClick={() => showExpandButton && setIsExpanded(!isExpanded)}
         >
-            {/* 日期标题区域 - 电脑端紧凑，手机端宽松 */}
-            <div className="px-2 md:px-3 pt-2 md:pt-2 pb-1 md:pb-1.5 border-b border-white/10">
+            <div className="px-2 md:px-2.5 pt-1.5 md:pt-2 pb-1 border-b border-white/10">
                 <div className="flex justify-between items-center min-w-0">
-                    {/* 左侧：日期 */}
                     <div className={clsx(
                         'text-sm md:text-base font-bold flex-shrink-0',
                         isToday ? 'text-pink-200' : 'text-white'
@@ -223,41 +254,39 @@ const ScheduleCell = ({ events, isToday, maxEventsInWeek = 1 }) => {
                         {formattedDate}
                     </div>
                     
-                    {/* 右侧：星期和今日标识 */}
-                    <div className="flex items-center space-x-2 md:space-x-1 min-w-0 flex-shrink-0">
+                    <div className="flex items-center space-x-1.5 md:space-x-1 min-w-0 flex-shrink-0">
                         <div className={clsx(
-                            'text-xs md:text-xs font-medium whitespace-nowrap',
+                            'text-xs font-medium whitespace-nowrap',
                             isToday ? 'text-pink-300/80' : 'text-gray-400'
                         )}>
                             {dayOfWeek}
                         </div>
                         {isToday && (
-                            <div className="flex items-center space-x-1.5 md:space-x-0.5 flex-shrink-0">
-                                <div className="w-2 md:w-1.5 h-2 md:h-1.5 bg-pink-400 rounded-full animate-pulse flex-shrink-0" />
-                                <span className="text-xs md:text-xs text-pink-300 font-medium whitespace-nowrap">今日</span>
+                            <div className="flex items-center space-x-1 flex-shrink-0">
+                                <div className="w-1.5 h-1.5 bg-pink-400 rounded-full animate-pulse flex-shrink-0" />
+                                <span className="text-xs text-pink-300 font-medium whitespace-nowrap">今日</span>
                             </div>
                         )}
                     </div>
                 </div>
             </div>
 
-            {/* 事件列表区域 - 响应式padding优化 */}
-            <div className="flex-1 flex flex-col p-2 md:p-3">
+            <div className="flex-1 flex flex-col p-1.5 md:p-2">
                 {isRestDay ? (
-                    <div className="flex-1 flex items-center justify-center py-1 md:py-2">
+                    <div className="flex-1 flex items-center justify-center">
                         <div className="text-center">
                             <BedtimeIcon 
                                 sx={{ 
-                                    fontSize: { xs: 18, md: 32 }, 
+                                    fontSize: { xs: 20, md: 28 }, 
                                     color: 'rgb(156, 163, 175)',
-                                    mb: { xs: 0.2, md: 0.5 }
+                                    mb: 0.5
                                 }} 
                             />
-                            <div className="text-xs md:text-sm text-gray-400">休息</div>
+                            <div className="text-xs text-gray-400">休息</div>
                         </div>
                     </div>
                 ) : (
-                    <div className="flex-1 flex flex-col space-y-1 md:space-y-2">
+                    <div className="flex-1 flex flex-col space-y-1 md:space-y-1.5">
                         {visibleEvents.map((event, index) => (
                             <EventItem 
                                 key={`${event.date}-${event.type}-${index}`}
@@ -266,11 +295,10 @@ const ScheduleCell = ({ events, isToday, maxEventsInWeek = 1 }) => {
                             />
                         ))}
                         
-                        {/* 展开/收起按钮 */}
                         {showExpandButton && (
-                            <div className="text-center pt-1 md:pt-2 mt-auto">
+                            <div className="text-center pt-1 mt-auto">
                                 <button 
-                                    className="text-xs px-2 md:px-3 py-1 text-gray-300 hover:text-white 
+                                    className="text-xs px-2 py-0.5 text-gray-300 hover:text-white 
                                              bg-white/5 hover:bg-white/10 rounded-full transition-all duration-200
                                              border border-white/10 hover:border-white/20 hover:scale-105"
                                     onClick={(e) => {

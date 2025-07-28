@@ -121,8 +121,8 @@ const WeekRow = ({ weekData, todayDate }) => {
                 )}
             </div>
             
-            {/* 响应式网格布局 */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-7 gap-2 md:gap-3">
+            {/* 响应式网格布局 - 更紧凑的间距 */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-7 gap-1.5 md:gap-2">
                 {fullWeekEvents.map((dayEvents, index) => {
                     // dayEvents 现在是一个事件数组
                     const eventDay = dayEvents[0]?.date ? dayjs(dayEvents[0].date).format('YYYY-MM-DD') : '';

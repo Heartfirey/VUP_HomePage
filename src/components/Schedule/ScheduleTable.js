@@ -4,6 +4,7 @@ import { useSelector, useDispatch } from 'react-redux';
 import Box from '@mui/material/Box';
 import CircularProgress from '@mui/material/CircularProgress';
 import LocalCafeIcon from '@mui/icons-material/LocalCafe';
+import EventIcon from '@mui/icons-material/Event';
 import WeekRow from './WeekRow';
 import dayjs from 'dayjs';
 import { BlackRawBlurCardNoAnimate, BlackRawBlurCardNoAnimate as RawBlurCard } from '../RawBlurCard';
@@ -96,7 +97,14 @@ const ScheduleTable = () => {
                     <div className="flex items-center justify-center mt-6 mb-4 py-4 px-6 mx-auto max-w-md
                                   rounded-lg bg-gradient-to-r from-blue-500/15 to-purple-500/15 
                                   backdrop-blur-sm border border-white/10">
-                        <span className="text-lg mr-3">📅</span>
+                        <EventIcon 
+                            sx={{ 
+                                width: 20, 
+                                height: 20, 
+                                color: 'rgb(147, 197, 253)',
+                                mr: 1.5
+                            }} 
+                        />
                         <div className="text-center">
                             <div className="text-sm font-medium text-gray-300">暂无直播计划</div>
                             <div className="text-xs text-gray-500">请稍后再试</div>
